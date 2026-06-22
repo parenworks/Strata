@@ -218,6 +218,10 @@
                 :class "theme-toggle"
                 :style "display:block;margin-top:6px;text-decoration:none;text-align:left;"
                 "✉ Inbox")
+            (:a :href "/search"
+                :class "theme-toggle"
+                :style "display:block;margin-top:6px;text-decoration:none;text-align:left;"
+                "⌕ Search")
             (:button :class "theme-toggle"
                      :type "button"
                      :style "margin-top:6px;"

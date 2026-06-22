@@ -196,6 +196,32 @@ Create a fresh profile-component instance for use as a per-session factory.
 
 Render the full profile HTML page for SESSION.
 
+* Package =strata.components.search=
+
+** Classes
+
+*** =search-component=
+
+/Undocumented: this exported symbol needs a docstring./
+
+** Functions
+
+*** =make-search=
+
+#+begin_example
+(make-search)
+#+end_example
+
+Create a fresh search-component instance.
+
+*** =render-search-page=
+
+#+begin_example
+(render-search-page session)
+#+end_example
+
+Render the full search HTML page for SESSION.
+
 * Package =strata.components.shell=
 
 ** Classes
@@ -255,6 +281,26 @@ to build action URLs. SESSION is the current Fluxion session.
 #+end_example
 
 Register the :mention and :post-touched hooks.  Call once at startup.
+
+* Package =strata.jobs.search=
+
+** Functions
+
+*** =backfill-search-index=
+
+#+begin_example
+(backfill-search-index)
+#+end_example
+
+Reindex all existing posts.  Run once at startup after ensure-schema.
+
+*** =start-search-hooks=
+
+#+begin_example
+(start-search-hooks)
+#+end_example
+
+Register :post-created and :post-touched triggers to keep search_vector current.
 
 * Package =strata.migrations=
 
@@ -586,6 +632,25 @@ LIMIT caps the result set; defaults to 50. This is the primary feed query.
 
 Return the value of FIELD in the POST data-model object.
 FIELD is a column name string, e.g. "body", "kind", "status", "last_activity".
+
+*** =reindex-post=
+
+#+begin_example
+(reindex-post post-id)
+#+end_example
+
+Update the search_vector column for POST-ID using to_tsvector.
+Safe to call repeatedly; a no-op if the post is not found.
+
+*** =search-posts=
+
+#+begin_example
+(search-posts query-text &key channel-id (limit 20))
+#+end_example
+
+Return up to LIMIT posts whose search_vector matches QUERY-TEXT.
+Uses plainto_tsquery for plain phrase matching.
+Optionally filter to a specific CHANNEL-ID.
 
 *** =set-post-status=
 

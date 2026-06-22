@@ -103,4 +103,18 @@ is all that is required to extend the schema during development."
                (p256dh     :text)
                (auth_key   :text)
                (created_at :bigint))
-             :if-exists :ignore))
+             :if-exists :ignore)
+
+  (db:alter "posts"
+            '((channel_id    :integer)
+              (author_id     :integer)
+              (kind          :text)
+              (body          :text)
+              (status        :text)
+              (pinned        :integer)
+              (last_activity :bigint)
+              (created_at    :bigint)
+              (search_vector "tsvector")))
+
+  (db:ensure-index "posts" "posts_search_vector_gin"
+                   '("search_vector") :method "GIN"))

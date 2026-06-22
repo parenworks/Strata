@@ -98,6 +98,10 @@ Guard logic:
       ((string= path "/inbox")
        (html-response (strata.components.inbox:render-inbox-page session)))
 
+      ;; Search page (requires auth)
+      ((string= path "/search")
+       (html-response (strata.components.search:render-search-page session)))
+
       ;; Authenticated: serve the shell
       (t
        (html-response (strata.components.shell:render-page-for-session session))))))
@@ -118,6 +122,9 @@ Guard logic:
                          :port db-port)
   (format t "~&[strata] Database ready.~%")
   (strata.app:make-app :port port)
+  (strata.jobs.notifications:start-notification-hooks)
+  (strata.jobs.search:start-search-hooks)
+  (strata.jobs.search:backfill-search-index)
   (fluxion.server:start strata.app:*app* #'page-handler :address "0.0.0.0")
   (format t "~&[strata] Server started on http://0.0.0.0:~D  (LAN accessible)~%" port)
   strata.app:*app*)

@@ -63,6 +63,8 @@
    #:list-posts-for-channel
    #:set-post-status
    #:touch-post
+   #:reindex-post
+   #:search-posts
    #:post-field
    #:+post-kinds+
    #:+post-statuses+))
@@ -213,6 +215,23 @@
                     (#:fx   #:fluxion.server)
                     (#:bt   #:bordeaux-threads))
   (:export #:start-notification-hooks))
+
+(defpackage #:strata.jobs.search
+  (:use #:cl)
+  (:local-nicknames (#:hooks #:fluxion.hooks)
+                    (#:bt   #:bordeaux-threads))
+  (:export #:start-search-hooks #:backfill-search-index))
+
+(defpackage #:strata.components.search
+  (:use #:cl)
+  (:local-nicknames (#:fx     #:fluxion.server)
+                    (#:comp   #:fluxion.components)
+                    (#:user   #:fluxion.user)
+                    (#:render #:fluxion.render))
+  (:export
+   #:search-component
+   #:make-search
+   #:render-search-page))
 
 (defpackage #:strata.migrations
   (:use #:cl)

@@ -89,6 +89,34 @@ LIMIT caps the result set; defaults to 50. This is the primary feed query."
                       :sort '(("pinned" . :desc) ("last_activity" . :desc))
                       :amount limit))))
 
+(defun reindex-post (post-id)
+  "Update the search_vector column for POST-ID using to_tsvector.
+Safe to call repeatedly; a no-op if the post is not found."
+  (let ((p (find-post-by-id post-id)))
+    (when p
+      (db:update-expr +collection+
+                      (db:compile-query `(:= _id ,post-id))
+                      `(("search_vector" . (:expr "to_tsvector('english', coalesce(\"body\", ''))")))))))
+
+(defun search-posts (query-text &key channel-id (limit 20))
+  "Return up to LIMIT posts whose search_vector matches QUERY-TEXT.
+Uses plainto_tsquery for plain phrase matching.
+Optionally filter to a specific CHANNEL-ID."
+  (handler-case
+      (let* ((channel-clause (if channel-id
+                                 (format nil " AND \"channel_id\" = ~D" channel-id)
+                                 ""))
+             (sql (format nil
+                          "SELECT * FROM \"posts\" WHERE \"search_vector\" @@ plainto_tsquery('english', $1)~A ORDER BY ts_rank(\"search_vector\", plainto_tsquery('english', $1)) DESC LIMIT ~D"
+                          channel-clause limit))
+             (rows (db:select-query sql (list query-text))))
+        (mapcar (lambda (row)
+                  (fxdm:alist-to-model +collection+ row))
+                rows))
+    (error (e)
+      (format t "~&[strata] search-posts error: ~A~%" e)
+      nil)))
+
 (defun set-post-status (post-id status)
   "Set the status field of POST-ID to STATUS and call touch-post.
 STATUS must be one of +post-statuses+: \"open\", \"resolved\", \"decided\", \"done\".

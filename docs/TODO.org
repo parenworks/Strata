@@ -80,9 +80,9 @@
 - [X] Bookmark toggle on post cards (filled/unfilled state, :bookmark action)
 
 ** Search
-- [ ] PostgreSQL tsvector column on posts
-- [ ] Background indexer job (bordeaux-threads)
-- [ ] Search component with type/status filter
+- [X] PostgreSQL tsvector column on posts (search_vector, GIN index via db:ensure-index)
+- [X] Background indexer job (bordeaux-threads, jobs/search.lisp, hooks on :post-created/:post-touched)
+- [X] Search component with type/status filter (/search, components/search.lisp)
 
 ** Channel management UI
 - [ ] Create channel dialog (slug, name, kind)

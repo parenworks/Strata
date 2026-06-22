@@ -54,7 +54,8 @@
      (:module "jobs"
       :serial t
       :components
-      ((:file "notifications")))
+      ((:file "notifications")
+       (:file "search")))
      (:module "components"
       :serial t
       :components
@@ -62,7 +63,8 @@
        (:file "thread")
        (:file "shell")
        (:file "login")
-       (:file "profile")))
+       (:file "profile")
+       (:file "search")))
      (:file "app")
      (:file "server")
      (:file "main")))))
