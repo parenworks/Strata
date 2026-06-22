@@ -1,0 +1,138 @@
+#+TITLE: Strata TODO
+#+AUTHOR: Glenn Thompson
+
+* Phase 1 - Core
+
+** Infrastructure
+- [X] ASDF system definition + Fluxion dependency wiring
+- [X] PostgreSQL connection via fluxion/db-pg
+- [X] Idempotent ensure-schema (replaces migration runner)
+- [X] Server start/stop (Woo via Clack, port 4242)
+- [X] Static file serving
+
+** Auth
+- [X] First-run setup page (admin account creation)
+- [X] Login page with session auth
+- [X] Auth guard in page-handler (redirect to /setup or /login)
+- [X] Session user wired into shell (display name, author-id on posts)
+- [X] Logout action (sidebar button, redirect to /login)
+- [X] User profile page (/profile - display name, title, bio, password change)
+
+** Domain Model
+- [X] Workspace model (create, find-by-slug, list)
+- [X] Channel model (create, find-by-slug, list-for-workspace, touch)
+- [X] Private channels (kind="private", channel_members table)
+- [X] Sub-channels (parent_channel_id column, list-subchannels)
+- [X] Post model (create, list-for-channel, set-status, touch)
+- [X] Reply model (create, list-for-post)
+- [X] Reaction model (add, remove, list-for-target)
+- [X] Mention model
+- [X] Bookmark model
+- [X] Channel-read model (last-read tracking)
+- [X] Push subscription model (save/find/list/delete)
+
+** Shell UI
+- [X] Three-column layout: workspace rail, channel sidebar, main panel
+- [X] Channel list in sidebar, sorted by last_activity
+- [X] Membership-aware channel list (private channels filtered)
+- [X] Sub-channels rendered indented under parent
+- [X] Private channel lock sigil in sidebar
+- [X] Channel switching via SSE (:switch-channel action)
+- [X] Post feed with typed posts (message, question, decision, task, announcement)
+- [X] Post kind badges and status badges
+- [X] Pinned post indicator
+- [X] Reaction pills on posts
+- [X] Reply count button
+- [X] Composer with post-kind picker, Shift+Enter for newline
+- [X] Workspace name from DB in sidebar header
+- [X] Session display name in sidebar
+- [X] Profile link on username in sidebar
+- [X] Sign out button in sidebar footer
+- [X] Dark mode toggle
+- [X] Default workspace + channels seeded on first admin creation
+
+** Notifications
+- [X] push_subscriptions table and model
+- [X] VAPID keypair generation (server startup, persisted to config/vapid-keys.lisp)
+- [X] =/push/register= endpoint (receives PushSubscription JSON from browser)
+- [X] =/push/unregister= endpoint
+- [X] Service worker (=static/sw.js=): push event handler, notification display
+- [X] PWA manifest (=static/manifest.json=)
+- [X] Opt-in button in profile page (calls browser Notification.requestPermission)
+- [X] VAPID Web Push send function (dexador + ES256 JWT via ironclad SECP256R1)
+- [X] Notification fanout job: :mention hook + bordeaux-threads fanout (jobs/notifications.lisp)
+
+* Phase 2 - Depth
+
+** Thread pane
+- [X] Thread pane component (reply list + reply composer, side panel)
+- [X] :open-thread action renders thread pane in shell
+- [X] Reply creates reply row, calls touch-post, triggers feed re-sort
+
+** Resurfacing
+- [X] touch-post called on reply, reaction, status change
+- [X] Post feed re-sorts live when post.last_activity changes (:post-touched hook broadcasts patch)
+- [X] Resolved posts collapse into a "Resolved" drawer at bottom of feed
+
+** Inbox
+- [X] Inbox component: mentions + bookmarks tabs, tabbed layout
+- [X] Mention parsing on post/reply create (@username detection via cl-ppcre)
+- [X] Bookmark toggle on post cards (filled/unfilled state, :bookmark action)
+
+** Search
+- [ ] PostgreSQL tsvector column on posts
+- [ ] Background indexer job (bordeaux-threads)
+- [ ] Search component with type/status filter
+
+** Channel management UI
+- [ ] Create channel dialog (slug, name, kind)
+- [ ] Add/remove members on private channels
+- [ ] Channel settings (rename, description, archive)
+
+** Post editing
+- [ ] Edit post body (with edited_at timestamp)
+- [ ] Delete post (admin or author)
+- [ ] Edit history display
+
+** File attachments
+- [ ] Attachment model (attachment table)
+- [ ] Upload handler (=/upload= endpoint)
+- [ ] Attachment display in post cards
+
+* Phase 3 - Platform
+
+** REST API
+- [ ] =GET /api/v1/channels= - list visible channels
+- [ ] =GET /api/v1/channels/:slug/posts= - paginated post feed
+- [ ] =POST /api/v1/channels/:slug/posts= - create post
+- [ ] =POST /api/v1/posts/:id/replies= - create reply
+- [ ] =GET /api/v1/me= - session user
+- [ ] API key model and auth
+
+** MCP Server
+- [ ] MCP server package (=strata/mcp=)
+- [ ] Tool: list-channels
+- [ ] Tool: read-channel (recent posts)
+- [ ] Tool: post-message
+- [ ] Tool: resolve-post
+- [ ] Resource: channel feed
+
+** PWA / Mobile
+- [ ] =manifest.json= with icons at all required sizes
+- [ ] Service worker caching strategy (offline shell)
+- [ ] "Install" prompt handling
+- [ ] Responsive CSS for mobile viewports
+
+** Admin
+- [ ] Admin panel: user list, invite user, disable user
+- [ ] Workspace settings page
+- [ ] Audit log view
+
+* Phase 4 - Federation (Future)
+
+- [ ] ActivityPub: public channels as Actors
+- [ ] Social deployment mode (self-registration, public workspaces)
+- [ ] Per-user data export (GDPR portability)
+- [ ] Account deletion cascade
+- [ ] valis Option B integration (9P namespace, UCAN capability tokens)
+- [ ] Multi-workspace federation via valis inter-node bus

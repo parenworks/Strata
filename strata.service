@@ -1,0 +1,25 @@
+[Unit]
+Description=Strata structured team workspace
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=strata
+Group=strata
+WorkingDirectory=/opt/strata
+ExecStart=/usr/local/bin/strata \
+    --port 4242 \
+    --db-name strata_dev \
+    --db-user strata \
+    --db-password localtest123 \
+    --db-host localhost \
+    --db-port 5432
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=strata
+
+[Install]
+WantedBy=multi-user.target
