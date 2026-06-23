@@ -7,6 +7,10 @@ set -euo pipefail
 STRATA_DIR="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
 
 echo "==> Pulling latest code..."
+FLUXION_DIR="$(dirname "$STRATA_DIR")/Fluxion"
+if [[ -d "$FLUXION_DIR/.git" ]]; then
+  cd "$FLUXION_DIR" && git pull origin feature/database-layer
+fi
 cd "$STRATA_DIR"
 git pull
 

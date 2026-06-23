@@ -68,7 +68,34 @@ sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" \
 sudo -u postgres psql -d "$DB_NAME" -c "GRANT ALL ON SCHEMA public TO $DB_USER;" 2>/dev/null || true
 
 # ------------------------------------------------------------------
-# 2. Build binary
+# 2. Ensure Fluxion is present and on the right branch
+# ------------------------------------------------------------------
+FLUXION_DIR="$(dirname "$STRATA_DIR")/Fluxion"
+if [[ ! -d "$FLUXION_DIR/.git" ]]; then
+  echo "==> Cloning Fluxion..."
+  git clone git@github-parenworks:parenworks/Fluxion.git "$FLUXION_DIR"
+fi
+cd "$FLUXION_DIR"
+git fetch origin
+git checkout feature/database-layer
+git pull origin feature/database-layer
+cd "$STRATA_DIR"
+
+# Register both repos with ASDF if not already done
+SRCONF="$HOME/.config/common-lisp/source-registry.conf.d/strata.conf"
+if [[ ! -f "$SRCONF" ]]; then
+  echo "==> Writing ASDF source-registry config..."
+  mkdir -p "$(dirname "$SRCONF")"
+  cat > "$SRCONF" <<SREOF
+(:source-registry
+ (:tree "$FLUXION_DIR")
+ (:tree "$STRATA_DIR")
+ :inherit-configuration)
+SREOF
+fi
+
+# ------------------------------------------------------------------
+# 3. Build binary
 # ------------------------------------------------------------------
 echo "==> Building Strata binary (this takes a minute)..."
 mkdir -p "$STRATA_DIR/bin"
@@ -77,7 +104,7 @@ sbcl --noinform --disable-debugger --load build.lisp
 echo "    Binary: $STRATA_DIR/bin/strata ($(du -sh bin/strata | cut -f1))"
 
 # ------------------------------------------------------------------
-# 3. Write VAPID config placeholder if missing
+# 4. Write VAPID config placeholder if missing
 # ------------------------------------------------------------------
 VAPID_FILE="$STRATA_DIR/config/vapid-keys.lisp"
 if [[ ! -f "$VAPID_FILE" ]]; then
