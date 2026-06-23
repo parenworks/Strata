@@ -81,9 +81,6 @@ git checkout feature/database-layer
 git pull origin feature/database-layer
 cd "$STRATA_DIR"
 
-# Copy fluxion.js client runtime into Strata's static dir
-cp "$FLUXION_DIR/static/fluxion.js" "$STRATA_DIR/static/fluxion.js"
-
 # Register both repos with ASDF if not already done
 SRCONF="$HOME/.config/common-lisp/source-registry.conf.d/strata.conf"
 if [[ ! -f "$SRCONF" ]]; then

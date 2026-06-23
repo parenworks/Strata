@@ -148,7 +148,7 @@ On failure sets the error-msg slot and re-renders."
             "Create account & sign in"))
         (:p :class "auth-alt-link"
           "Already have an account? "
-          (:a :href "/login" "Sign in")))))
+          (:a :href "/login" "Sign in"))))))
 
 (fluxion.components:defaction setup-component :create-admin (self params)
   "Create the first admin user and log them in.
