@@ -10,6 +10,7 @@ echo "==> Pulling latest code..."
 FLUXION_DIR="$(dirname "$STRATA_DIR")/Fluxion"
 if [[ -d "$FLUXION_DIR/.git" ]]; then
   cd "$FLUXION_DIR" && git pull origin feature/database-layer
+  cp "$FLUXION_DIR/static/fluxion.js" "$STRATA_DIR/static/fluxion.js"
 fi
 cd "$STRATA_DIR"
 git pull

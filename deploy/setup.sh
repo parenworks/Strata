@@ -81,6 +81,9 @@ git checkout feature/database-layer
 git pull origin feature/database-layer
 cd "$STRATA_DIR"
 
+# Copy fluxion.js client runtime into Strata's static dir
+cp "$FLUXION_DIR/static/fluxion.js" "$STRATA_DIR/static/fluxion.js"
+
 # Register both repos with ASDF if not already done
 SRCONF="$HOME/.config/common-lisp/source-registry.conf.d/strata.conf"
 if [[ ! -f "$SRCONF" ]]; then
@@ -93,7 +96,20 @@ SREOF
 fi
 
 # ------------------------------------------------------------------
-# 3. Build binary
+# 3. System dependencies
+# ------------------------------------------------------------------
+echo "==> Checking system dependencies..."
+MISSING_PKGS=()
+dpkg -s libev-dev &>/dev/null || MISSING_PKGS+=(libev-dev)
+if [[ ${#MISSING_PKGS[@]} -gt 0 ]]; then
+  echo "    Installing: ${MISSING_PKGS[*]}"
+  sudo apt-get install -y "${MISSING_PKGS[@]}"
+else
+  echo "    libev-dev already installed."
+fi
+
+# ------------------------------------------------------------------
+# 4. Build binary
 # ------------------------------------------------------------------
 echo "==> Building Strata binary (this takes a minute)..."
 mkdir -p "$STRATA_DIR/bin"
