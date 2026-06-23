@@ -23,7 +23,7 @@
             :class "admin-shell"
         (:header :class "admin-header"
           (:h1 :class "admin-title" "Strata Admin")
-          (:a :href "/" :class "admin-back-link" "Back to workspace"))
+          (:a :href "/" :class "admin-back-link" "← Back to workspace"))
         (when msg
           (:div :class "admin-flash" msg))
         (:nav :class "admin-tabs"
@@ -37,15 +37,16 @@
                                 "admin-tab-btn active"
                                 "admin-tab-btn")
                      :data-on-click (format nil "/action/strata-admin/switch-tab?tab=~A" (car pair))
-                     (cdr pair))))
+                     (:raw (spinneret:escape-string (cdr pair))))))
         (:div :class "admin-tab-panel"
-          (cond
-            ((string= tab "users")     (render-users-tab self session))
-            ((string= tab "channels")  (render-channels-tab))
-            ((string= tab "workspace") (render-workspace-tab))
-            ((string= tab "storage")   (render-storage-tab))
-            ((string= tab "audit")     (render-audit-tab))
-            (t                         (render-users-tab self session))))))))
+          (:raw
+           (cond
+             ((string= tab "users")     (render-users-tab self session))
+             ((string= tab "channels")  (render-channels-tab))
+             ((string= tab "workspace") (render-workspace-tab))
+             ((string= tab "storage")   (render-storage-tab))
+             ((string= tab "audit")     (render-audit-tab))
+             (t                         (render-users-tab self session)))))))))
 
 ;;; -------------------------------------------------------
 ;;; Helpers
@@ -125,6 +126,7 @@
   (declare (ignore self))
   (let* ((users   (all-user-rows))
          (me-name (session-username session)))
+    (spinneret:with-html-string
     (:div :class "admin-tab-content"
       (:div :class "admin-section-header"
         (:h2 "Users")
@@ -146,21 +148,21 @@
           (dolist (u users)
             (let* ((uid      (fluxion.user:user-id u))
                    (uname    (fluxion.user:user-username u))
-                   (dname    (handler-case (fluxion.user:field uid "display_name")
+                   (dname    (handler-case (fluxion.user:field uname "display_name")
                                (error () "")))
                    (disabled (handler-case
-                                 (string= "1" (fluxion.user:field uid "disabled"))
+                                 (string= "1" (fluxion.user:field uname "disabled"))
                                (error () nil)))
                    (is-admin (strata.auth:is-admin-p uname))
                    (posts    (user-post-count uid))
                    (me       (string= uname me-name)))
               (:tr :class (if disabled "admin-row-disabled" "")
                 (:td (:strong uname))
-                (:td (or dname ""))
-                (:td (princ-to-string posts))
+                (:td (:raw (spinneret:escape-string (or dname ""))))
+                (:td (:raw (princ-to-string posts)))
                 (:td (if is-admin
                          (:span :class "admin-badge admin-badge-admin" "admin")
-                         ""))
+                         (:span "")))
                 (:td (if disabled
                          (:span :class "admin-badge admin-badge-disabled" "Disabled")
                          (:span :class "admin-badge admin-badge-active" "Active")))
@@ -190,11 +192,13 @@
                     (:input :type "password" :name "new_password"
                             :placeholder "New password" :class "admin-input admin-input-sm")
                     (:button :type "submit" :class "admin-btn admin-btn-sm"
-                             "Reset pw")))))))))))
+                             "Reset pw"))))))))))))
 
 (defun render-channels-tab ()
+
   "Render the Channels management tab."
   (let ((workspaces (handler-case (strata.models.workspace:list-workspaces) (error () nil))))
+    (spinneret:with-html-string
     (:div :class "admin-tab-content"
       (:h2 "Channels")
       (if workspaces
@@ -205,7 +209,7 @@
                                  (strata.models.channel:list-channels-for-workspace ws-id)
                                (error () nil))))
               (:div :class "admin-workspace-group"
-                (:h3 :class "admin-workspace-label" ws-name)
+                (:h3 :class "admin-workspace-label" (:raw (spinneret:escape-string (or ws-name ""))))
                 (if channels
                     (:table :class "admin-table"
                       (:thead
@@ -216,16 +220,17 @@
                           (let* ((ch-id   (fxdm:model-id ch))
                                  (slug    (strata.models.channel:channel-field ch "slug"))
                                  (name    (strata.models.channel:channel-field ch "name"))
-                                 (kind    (or (strata.models.channel:channel-field ch "kind") "open"))
+                                 (kind-raw (or (strata.models.channel:channel-field ch "kind") "open"))
+                                 (kind    (if (string= kind-raw "open") "public" kind-raw))
                                  (vis     (or (strata.models.channel:channel-field ch "visibility") "private"))
                                  (la      (strata.models.channel:channel-field ch "last_activity"))
                                  (archived (string= vis "archived")))
                             (:tr :class (if archived "admin-row-disabled" "")
-                              (:td (:code slug))
-                              (:td name)
-                              (:td kind)
-                              (:td vis)
-                              (:td (format-ts la))
+                              (:td (:code (:raw (spinneret:escape-string (or slug "")))))
+                              (:td (:raw (spinneret:escape-string (or name ""))))
+                              (:td (:raw (spinneret:escape-string kind)))
+                              (:td (:raw (spinneret:escape-string vis)))
+                              (:td (:raw (or (format-ts la) "")))
                               (:td :class "admin-action-cell"
                                 (if archived
                                     (:button :class "admin-btn admin-btn-sm admin-btn-success"
@@ -235,13 +240,19 @@
                                     (:button :class "admin-btn admin-btn-sm admin-btn-danger"
                                              :type "button"
                                              :data-on-click (format nil "/action/strata-admin/archive-channel?id=~A" ch-id)
-                                             "Archive"))))))))
+                                             "Archive"))
+                                (:button :class "admin-btn admin-btn-sm admin-btn-danger"
+                                         :type "button"
+                                         :data-on-click (format nil "/action/strata-admin/delete-channel?id=~A" ch-id)
+                                         :onclick "return confirm('Permanently delete this channel and all its posts? This cannot be undone.')"
+                                         "Delete")))))))
                     (:p :class "admin-empty" "No channels.")))))
-          (:p :class "admin-empty" "No workspaces.")))))
+          (:p :class "admin-empty" "No workspaces."))))))
 
 (defun render-workspace-tab ()
   "Render the Workspace settings tab."
   (let ((workspaces (handler-case (strata.models.workspace:list-workspaces) (error () nil))))
+    (spinneret:with-html-string
     (:div :class "admin-tab-content"
       (:h2 "Workspace settings")
       (if workspaces
@@ -250,7 +261,7 @@
                    (ws-slug (strata.models.workspace:workspace-field ws "slug"))
                    (ws-name (strata.models.workspace:workspace-field ws "display_name")))
               (:div :class "admin-card"
-                (:h3 ws-slug)
+                (:h3 (:raw (spinneret:escape-string (or ws-slug ""))))
                 (:form :class "admin-settings-form"
                        :data-on-submit (format nil "/action/strata-admin/update-workspace?id=~A" ws-id)
                   (:label "Display name"
@@ -258,12 +269,13 @@
                             :value (or ws-name "")
                             :class "admin-input"))
                   (:button :type "submit" :class "admin-btn admin-btn-primary" "Save")))))
-          (:p :class "admin-empty" "No workspaces.")))))
+          (:p :class "admin-empty" "No workspaces."))))))
 
 (defun render-storage-tab ()
   "Render the Storage tab showing attachment list and disk usage."
   (let* ((atts  (all-attachment-rows))
          (total (total-attachment-bytes)))
+    (spinneret:with-html-string
     (:div :class "admin-tab-content"
       (:div :class "admin-section-header"
         (:h2 "Storage")
@@ -286,22 +298,23 @@
                        (url   (format nil "/uploads/~A/~A" uuid fname)))
                   (:tr
                     (:td (:a :href url :target "_blank" :class "admin-link" fname))
-                    (:td :class "admin-muted" (or ctype ""))
-                    (:td (format-bytes size))
-                    (:td (princ-to-string (or uid "")))
-                    (:td (format-ts cat))
+                    (:td :class "admin-muted" (:raw (spinneret:escape-string (or ctype ""))))
+                    (:td (:raw (format-bytes size)))
+                    (:td (:raw (princ-to-string (or uid ""))))
+                    (:td (:raw (or (format-ts cat) "")))
                     (:td
                       (:button :class "admin-btn admin-btn-sm admin-btn-danger"
                                :type "button"
                                :data-on-click (format nil "/action/strata-admin/delete-attachment?uuid=~A" uuid)
                                "Delete")))))))
-          (:p :class "admin-empty" "No attachments.")))))
+          (:p :class "admin-empty" "No attachments."))))))
 
 (defun render-audit-tab ()
   "Render the Audit Log tab."
   (let ((entries (handler-case
                      (strata.models.audit-log:list-recent-events :limit 200)
                    (error () nil))))
+    (spinneret:with-html-string
     (:div :class "admin-tab-content"
       (:h2 "Audit Log")
       (if entries
@@ -318,13 +331,14 @@
                        (tid    (strata.models.audit-log:audit-log-field e "target_id"))
                        (detail (strata.models.audit-log:audit-log-field e "detail")))
                   (:tr
-                    (:td :class "admin-muted" (format-ts ts))
-                    (:td (princ-to-string (or actor "")))
-                    (:td (:code action))
-                    (:td (when (and ttype (plusp (length ttype)))
-                           (format nil "~A #~A" ttype (or tid ""))))
-                    (:td :class "admin-detail" (or detail "")))))))
-          (:p :class "admin-empty" "No audit log entries yet.")))))
+                    (:td :class "admin-muted" (:raw (or (format-ts ts) "")))
+                    (:td (:raw (princ-to-string (or actor ""))))
+                    (:td (:code (:raw (spinneret:escape-string (or action "")))))
+                    (:td (:raw (if (and ttype (plusp (length ttype)))
+                                  (format nil "~A #~A" ttype (or tid ""))
+                                  "")))
+                    (:td :class "admin-detail" (:raw (spinneret:escape-string (or detail ""))))))))
+          (:p :class "admin-empty" "No audit log entries yet.")))))))
 
 ;;; -------------------------------------------------------
 ;;; Actions
@@ -490,6 +504,24 @@
                                                     :target-type "channel"
                                                     :target-id (or ch-id 0))
               (setf (admin-flash-msg self) "Channel restored."))
+          (error (e)
+            (setf (admin-flash-msg self) (format nil "Error: ~A" e))))
+        (fluxion.components:patch-component self)))))
+
+(fluxion.components:defaction admin-component :delete-channel (self params)
+  "Permanently delete a channel and all its posts."
+  (let ((session (fluxion.components:component-session self)))
+    (with-admin-guard session
+      (let* ((id-str   (cdr (assoc "id" params :test #'string=)))
+             (ch-id    (when id-str (parse-integer id-str :junk-allowed t)))
+             (actor-id (session-actor-id session)))
+        (handler-case
+            (progn
+              (strata.models.channel:delete-channel ch-id)
+              (strata.models.audit-log:record-event actor-id "channel.delete"
+                                                    :target-type "channel"
+                                                    :target-id (or ch-id 0))
+              (setf (admin-flash-msg self) "Channel deleted."))
           (error (e)
             (setf (admin-flash-msg self) (format nil "Error: ~A" e))))
         (fluxion.components:patch-component self)))))

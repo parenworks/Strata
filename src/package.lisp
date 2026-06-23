@@ -29,6 +29,7 @@
    #:update-channel
    #:archive-channel
    #:unarchive-channel
+   #:delete-channel
    #:touch-channel
    #:channel-field))
 

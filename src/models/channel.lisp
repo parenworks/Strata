@@ -102,6 +102,12 @@ Archived channels are excluded from the sidebar but not deleted."
       (fxdm:save c)
       c)))
 
+(defun delete-channel (channel-id)
+  "Permanently delete CHANNEL-ID and all its posts and members."
+  (db:remove "posts"           (db:compile-query `(:= channel_id ,channel-id)))
+  (db:remove "channel_members" (db:compile-query `(:= channel_id ,channel-id)))
+  (db:delete-by-id +collection+ channel-id))
+
 (defun touch-channel (channel-id)
   "Set last_activity on CHANNEL-ID to the current universal time and persist it.
 Call this whenever a post is created or replied to in the channel so the

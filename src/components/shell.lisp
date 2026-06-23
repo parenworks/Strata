@@ -216,6 +216,38 @@
       (:div :id (fluxion.components:component-id self)
             :class "strata-shell"
 
+        (when (shell-creating-channel-p self)
+          (:div :class "modal-overlay"
+            (:div :class "modal-dialog"
+              (:div :class "modal-header"
+                (:h2 :class "modal-title" "New Channel")
+                (:button :class "modal-close" :type "button"
+                         :data-on-click "/action/strata-shell/hide-new-channel"
+                         "✕"))
+              (:form :class "modal-form"
+                     :data-on-submit "/action/strata-shell/create-channel"
+                (:div :class "modal-field"
+                  (:label :for "new-ch-name" "Channel name")
+                  (:input :class "modal-input" :id "new-ch-name" :name "name"
+                          :placeholder "e.g. general" :required t :autofocus t))
+                (:div :class "modal-field"
+                  (:label :for "new-ch-slug" "Slug")
+                  (:input :class "modal-input" :id "new-ch-slug" :name "slug"
+                          :placeholder "e.g. general (no spaces)")
+                  (:p :class "modal-hint" "Lowercase letters, numbers, and hyphens only."))
+                (:div :class "modal-field"
+                  (:label :for "new-ch-kind" "Type")
+                  (:select :class "modal-select" :id "new-ch-kind" :name "kind"
+                    (:option :value "open" "Public - anyone can join")
+                    (:option :value "private" "Private - invite only")))
+                (:div :class "modal-actions"
+                  (:button :type "button" :class "modal-btn-ghost"
+                           :data-on-click "/action/strata-shell/hide-new-channel"
+                           "Cancel")
+                  (:button :type "submit" :class "modal-btn-primary"
+                           "Create channel"))))))
+
+
         ;; --- Workspace rail ---
         (:nav :class "workspace-rail" :aria-label "Workspaces"
           (:div :class "workspace-avatar active" :title "Strata"
@@ -249,21 +281,6 @@
                        :data-on-click "/action/strata-shell/show-new-channel"
                        "+ "))
 
-            (when (shell-creating-channel-p self)
-              (:form :class "channel-create-form"
-                     :data-on-submit "/action/strata-shell/create-channel"
-                (:input :class "channel-create-input" :name "name"
-                        :placeholder "Channel name" :required t :autofocus t)
-                (:input :class "channel-create-input" :name "slug"
-                        :placeholder "slug (no spaces)" :required t)
-                (:select :class "channel-create-select" :name "kind"
-                  (:option :value "open" "Open")
-                  (:option :value "private" "Private"))
-                (:div :class "channel-create-actions"
-                  (:button :type "submit" :class "channel-create-btn" "Create")
-                  (:button :type "button" :class "channel-create-cancel"
-                           :data-on-click "/action/strata-shell/hide-new-channel"
-                           "Cancel"))))
             (if channels
                 (dolist (ch channels)
                   (let* ((slug     (channel-field ch "slug"))
@@ -720,23 +737,37 @@ Adds the bookmark if absent, removes it if already present."
   (fluxion.components:patch-component self))
 
 (fluxion.components:defaction shell-component :create-channel (self params)
-  "Create a new channel from the sidebar form and switch to it."
-  (let* ((name (cdr (assoc "name" params :test #'string=)))
-         (slug (cdr (assoc "slug" params :test #'string=)))
+  "Create a new channel from the modal and switch to it."
+  (let* ((session (fluxion.components:component-session self))
+         (name-raw (or (cdr (assoc "name" params :test #'string=)) ""))
+         (slug-raw (or (cdr (assoc "slug" params :test #'string=)) ""))
+         (name (string-trim '(#\Space) name-raw))
+         (slug (let ((s (string-trim '(#\Space) slug-raw)))
+                 (if (plusp (length s))
+                     s
+                     (string-downcase
+                      (with-output-to-string (out)
+                        (loop for c across name
+                              if (alphanumericp c) do (write-char (char-downcase c) out)
+                              else if (char= c #\Space) do (write-char #\- out)))))))
          (kind (or (cdr (assoc "kind" params :test #'string=)) "open"))
          (ws   (handler-case
                    (strata.models.workspace:find-workspace-by-slug "default")
                  (error () nil)))
-         (ws-id (when ws (fxdm:model-id ws))))
-    (when (and name slug ws-id
-               (plusp (length (string-trim '(#\Space) name)))
-               (plusp (length (string-trim '(#\Space) slug))))
+         (ws-id (when ws (fxdm:model-id ws)))
+         (user-id (when session (session-author-id session))))
+    (when (and (plusp (length name)) (plusp (length slug)) ws-id)
       (handler-case
-          (let ((ch (strata.models.channel:create-channel
-                     :workspace-id ws-id
-                     :slug  (string-trim '(#\Space) slug)
-                     :name  (string-trim '(#\Space) name)
-                     :kind  kind)))
+          (let* ((ch    (strata.models.channel:create-channel
+                         :workspace-id ws-id
+                         :slug  slug
+                         :name  name
+                         :kind  kind))
+                 (ch-id (fxdm:model-id ch)))
+            (when user-id
+              (handler-case
+                  (strata.models.channel-member:add-member ch-id user-id)
+                (error () nil)))
             (setf (shell-active-channel self)
                   (strata.models.channel:channel-field ch "slug")))
         (error (e)

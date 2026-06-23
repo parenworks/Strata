@@ -25,10 +25,11 @@
 
 .admin-back-link {
   font-size: 0.85rem;
-  color: var(--text-secondary);
+  color: var(--accent);
   text-decoration: none;
+  white-space: nowrap;
 }
-.admin-back-link:hover { color: var(--text-primary); }
+.admin-back-link:hover { color: var(--text-primary); text-decoration: underline; }
 
 .admin-flash {
   margin: 16px 28px 0;
