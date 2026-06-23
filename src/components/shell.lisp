@@ -789,9 +789,8 @@ Adds the bookmark if absent, removes it if already present."
 
 (fluxion.components:defaction shell-component :logout (self params)
   "Log the current user out of the session and redirect to /login."
-  (let ((session (fluxion.components:component-session self)))
-    (when session
-      (fluxion.auth:logout session)))
+  (when params nil)
+  (fluxion.auth:logout)
   (list (events:make-redirect-event "/login")))
 
 ;;; -------------------------------------------------------
