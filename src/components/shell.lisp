@@ -297,7 +297,7 @@
                      "⎋ Sign out")))
 
         ;; --- Main panel ---
-        (:main :class "main-panel"
+        (:div :class "main-panel"
 
           ;; Mobile toolbar (hamburger + title, hidden on desktop)
           (:div :class "mobile-toolbar"
@@ -309,7 +309,7 @@
               "#" (shell-active-channel self)))
 
           ;; Channel header
-          (:header :class "channel-header"
+          (:div :class "channel-header"
             (:span :class "channel-header-hash" "#")
             (:span :class "channel-header-name" (shell-active-channel self))
             (:div :class "header-actions"
@@ -322,7 +322,7 @@
                        "⬇ Install"))))
 
           ;; Post feed
-          (:section :id "post-feed" :class (if thread-id "post-feed thread-open" "post-feed")
+          (:div :id "post-feed" :class (if thread-id "post-feed thread-open" "post-feed")
             (:div :class "feed-date-divider"
               (:span :class "feed-date-label" "Today"))
             (if posts
