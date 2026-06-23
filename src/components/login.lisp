@@ -132,12 +132,12 @@ On failure sets the error-msg slot and re-renders."
           (:div :class "auth-field"
             (:label :for "display-name" "Display name")
             (:input :type "text" :id "display-name" :name "display_name"
-                    :required t :placeholder "e.g. Glenn Thompson"))
+                    :required t :placeholder "e.g. Jane Smith"))
           (:div :class "auth-field"
             (:label :for "setup-username" "Username")
             (:input :type "text" :id "setup-username" :name "username"
                     :autocomplete "username" :required t
-                    :placeholder "e.g. glenn"))
+                    :placeholder "e.g. jsmith"))
           (:div :class "auth-field"
             (:label :for "setup-password" "Password")
             (:input :type "password" :id "setup-password" :name "password"
@@ -145,7 +145,10 @@ On failure sets the error-msg slot and re-renders."
                     :placeholder "choose a strong password"))
           (:button :type "submit" :class "auth-submit-btn"
                    :data-disable-during-request t
-            "Create account & sign in"))))))
+            "Create account & sign in"))
+        (:p :class "auth-alt-link"
+          "Already have an account? "
+          (:a :href "/login" "Sign in")))))
 
 (fluxion.components:defaction setup-component :create-admin (self params)
   "Create the first admin user and log them in.
