@@ -319,7 +319,7 @@
               (:button :id "pwa-install-btn" :type "button"
                        :hidden t
                        :onclick "strataInstallApp()"
-                       "⬇ Install"))))
+                       "⬇ Install")))
 
           ;; Post feed
           (:div :id "post-feed" :class (if thread-id "post-feed thread-open" "post-feed")
@@ -436,7 +436,7 @@
                           (:div :class "post-meta"
                             (:span :class (format nil "post-kind-badge post-kind-~A" kind) kind)
                             (:span :class (format nil "post-status-badge post-status-~A" status) status))
-                          (:p :class "post-body" body))))))))))
+                          (:p :class "post-body" body)))))))))
 
           ;; Channel settings panel
           (let ((mgmt-id (shell-managing-channel-id self)))
@@ -527,7 +527,7 @@
 
       ;; Mobile overlay (dismisses sidebar when tapped outside)
       (:div :id "mobile-overlay" :hidden t
-            :onclick "strataMobileSidebarClose()")))))
+            :onclick "strataMobileSidebarClose()")))))))
 
 (setf (documentation (find-class 'shell-component) t)
       "Top-level Fluxion component that renders the full Strata application shell.
