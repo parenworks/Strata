@@ -25,7 +25,8 @@
                "local-time"
                "dexador"
                "cl-base64"
-               "quri")
+               "quri"
+               "rfc2388")
   :serial t
   :components
   ((:module "src"
@@ -44,7 +45,11 @@
        (:file "reaction")
        (:file "mention")
        (:file "bookmark")
-       (:file "channel-read")))
+       (:file "post-edit")
+       (:file "channel-read")
+       (:file "attachment")
+       (:file "audit-log")
+       (:file "api-key")))
      (:module "migrations"
       :serial t
       :components
@@ -64,7 +69,10 @@
        (:file "shell")
        (:file "login")
        (:file "profile")
-       (:file "search")))
+       (:file "search")
+       (:file "admin")))
+     (:file "api")
+     (:file "mcp")
      (:file "app")
      (:file "server")
      (:file "main")))))

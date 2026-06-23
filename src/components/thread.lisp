@@ -42,6 +42,9 @@ to build action URLs. SESSION is the current Fluxion session."
                     (error () nil)))
          (replies (handler-case (strata.models.reply:list-replies-for-post post-id)
                     (error () nil)))
+         (post-attachments (handler-case
+                               (strata.models.attachment:list-attachments-for-post post-id)
+                             (error () nil)))
          (uid     (session-author-id session)))
     (spinneret:with-html-string
       (:div :class "thread-pane"
@@ -62,18 +65,24 @@ to build action URLs. SESSION is the current Fluxion session."
                   (:div :class "thread-post-meta"
                     (:span :class (format nil "post-kind-badge post-kind-~A" kind) kind)
                     (:span :class "post-time" (fmt-time ts)))
-                  (:p :class "post-body" body)))
+                  (:p :class "post-body" body)
+                  (strata.components.shell:render-attachment-list post-attachments)))
               (:p "Post not found."))
 
           (:div :class "thread-replies"
             (if replies
                 (dolist (r replies)
-                  (let* ((body (strata.models.reply:reply-field r "body"))
-                         (ts   (strata.models.reply:reply-field r "created_at")))
+                  (let* ((rid   (fxdm:model-id r))
+                         (body  (strata.models.reply:reply-field r "body"))
+                         (ts    (strata.models.reply:reply-field r "created_at"))
+                         (ratts (handler-case
+                                    (strata.models.attachment:list-attachments-for-reply rid)
+                                  (error () nil))))
                     (:div :class "thread-reply"
                       (:div :class "thread-reply-meta"
                         (:span :class "post-time" (fmt-time ts)))
-                      (:p :class "post-body" body))))
+                      (:p :class "post-body" body)
+                      (strata.components.shell:render-attachment-list ratts))))
                 (:p :class "feed-empty" "No replies yet.")))
 
           (:form :class "thread-composer"

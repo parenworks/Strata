@@ -38,6 +38,16 @@ Slugs are unique per installation and are used in URLs and config."
   (fxdm:get-one +collection+
                 (db:compile-query `(:= slug ,slug))))
 
+(defun update-workspace (workspace-id &key display-name)
+  "Update the DISPLAY-NAME of WORKSPACE-ID.
+Only supplied (non-nil) values are applied."
+  (let ((w (find-workspace-by-id workspace-id)))
+    (when w
+      (when display-name
+        (setf (fxdm:model-field w "display_name") display-name))
+      (fxdm:save w)
+      w)))
+
 (defun list-workspaces ()
   "Return all workspace data-models, sorted alphabetically by display_name.
 Used to populate the workspace rail in the shell UI."

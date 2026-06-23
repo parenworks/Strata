@@ -39,6 +39,8 @@ to /action/strata-shell/<action-name>."
    *app* "strata-inbox" #'strata.components.inbox:make-inbox)
   (fluxion.server:register-component-factory
    *app* "strata-search" #'strata.components.search:make-search)
+  (fluxion.server:register-component-factory
+   *app* "strata-admin" #'strata.components.admin:make-admin)
   *app*)
 
 (defun connect-db (&key (database "strata_dev")

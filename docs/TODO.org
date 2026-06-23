@@ -85,48 +85,64 @@
 - [X] Search component with type/status filter (/search, components/search.lisp)
 
 ** Channel management UI
-- [ ] Create channel dialog (slug, name, kind)
-- [ ] Add/remove members on private channels
-- [ ] Channel settings (rename, description, archive)
+- [X] Create channel dialog (slug, name, kind, inline sidebar form)
+- [X] Add/remove members on private channels (settings panel, username lookup)
+- [X] Channel settings (rename, description, archive, per-channel gear button)
 
 ** Post editing
-- [ ] Edit post body (with edited_at timestamp)
-- [ ] Delete post (admin or author)
-- [ ] Edit history display
+- [X] Edit post body (with edited_at timestamp, inline edit form in feed)
+- [X] Delete post (author only, cascades replies/reactions/mentions/bookmarks/post_edits)
+- [X] Edit history display (post_edits table, expandable details panel on post card)
 
 ** File attachments
-- [ ] Attachment model (attachment table)
-- [ ] Upload handler (=/upload= endpoint)
-- [ ] Attachment display in post cards
+- [X] Attachment model (attachment table, strata.models.attachment, rfc2388 dep)
+- [X] Upload handler (=/upload= endpoint, session auth, multipart parsing)
+- [X] Attachment display in post cards and reply thread pane (img preview + file link)
 
 * Phase 3 - Platform
 
 ** REST API
-- [ ] =GET /api/v1/channels= - list visible channels
-- [ ] =GET /api/v1/channels/:slug/posts= - paginated post feed
-- [ ] =POST /api/v1/channels/:slug/posts= - create post
-- [ ] =POST /api/v1/posts/:id/replies= - create reply
-- [ ] =GET /api/v1/me= - session user
-- [ ] API key model and auth
+- [X] =GET /api/v1/me= - authenticated user info
+- [X] =GET /api/v1/me/keys= - list caller's API keys
+- [X] =POST /api/v1/me/keys= - create new API key (returns raw token once)
+- [X] =DELETE /api/v1/me/keys/:id= - revoke an API key
+- [X] =GET /api/v1/channels= - list visible channels
+- [X] =GET /api/v1/channels/:slug= - single channel info
+- [X] =GET /api/v1/channels/:slug/posts= - paginated post feed
+- [X] =POST /api/v1/channels/:slug/posts= - create post
+- [X] =GET /api/v1/posts/:id= - single post
+- [X] =GET /api/v1/posts/:id/replies= - list replies
+- [X] =POST /api/v1/posts/:id/replies= - create reply
+- [X] API key model (=api_keys= table, SHA-256 stored, Bearer token auth)
+- [X] =strata.models.api-key= + =strata.api= packages
 
 ** MCP Server
-- [ ] MCP server package (=strata/mcp=)
-- [ ] Tool: list-channels
-- [ ] Tool: read-channel (recent posts)
-- [ ] Tool: post-message
-- [ ] Tool: resolve-post
-- [ ] Resource: channel feed
+- [X] MCP server package (=strata.mcp=) at =POST /mcp=
+- [X] Tool: list-channels
+- [X] Tool: read-channel (recent posts)
+- [X] Tool: post-message
+- [X] Tool: resolve-post
+- [X] Resource: =channel://<slug>= feed
+- [X] JSON-RPC 2.0 over HTTP, Bearer token auth (same API keys)
 
 ** PWA / Mobile
-- [ ] =manifest.json= with icons at all required sizes
-- [ ] Service worker caching strategy (offline shell)
-- [ ] "Install" prompt handling
-- [ ] Responsive CSS for mobile viewports
+- [X] =manifest.json= with 192 + 512 icons
+- [X] Service worker caching strategy (offline shell) + push notifications
+- [X] "Install" prompt handling (=pwa.js=, =pwa-install-btn=)
+- [X] Responsive CSS for tablet (768px) and mobile (560px)
+- [X] Mobile toolbar with hamburger + overlay sidebar dismiss
+- [X] PWA meta tags: =theme-color=, =apple-mobile-web-app-*=, manifest link
 
 ** Admin
-- [ ] Admin panel: user list, invite user, disable user
-- [ ] Workspace settings page
-- [ ] Audit log view
+- [X] Admin panel at =/admin= with admin permission guard
+- [X] Users tab: list all users, invite (create), disable/enable, grant/revoke admin, reset password
+- [X] Channels tab: list all channels per workspace, archive/unarchive
+- [X] Workspace tab: rename workspace display name
+- [X] Storage tab: attachment list with sizes, total disk used, delete any attachment
+- [X] Audit log tab: chronological log of all admin actions (new =audit_log= table)
+- [X] =strata.models.audit-log= model with =record-event=, =list-recent-events=
+- [X] Disabled user check wired into login action (disabled users cannot log in)
+- [X] =static/css/admin.css= panel stylesheet
 
 * Phase 4 - Federation (Future)
 

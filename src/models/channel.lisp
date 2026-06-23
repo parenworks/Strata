@@ -49,7 +49,7 @@ Only returns channels with no parent (parent_channel_id IS NULL), so sub-channel
 are not shown at the top level. Use list-subchannels to get children."
   (fxdm:get-all +collection+
                 (db:compile-query `(:and (:= workspace_id ,workspace-id)
-                                         (:null parent_channel_id)))
+                                         (:= parent_channel_id nil)))
                 :sort '(("last_activity" . :desc))))
 
 (defun list-channels-for-user (workspace-id user-id member-channel-ids)
@@ -60,7 +60,7 @@ Only top-level channels are returned; use list-subchannels for children."
   (let ((all (fxdm:get-all +collection+
                             (db:compile-query
                              `(:and (:= workspace_id ,workspace-id)
-                                    (:null parent_channel_id)))
+                                    (:= parent_channel_id nil)))
                             :sort '(("last_activity" . :desc)))))
     (remove-if (lambda (ch)
                  (and (string= (channel-field ch "kind") "private")
@@ -72,6 +72,35 @@ Only top-level channels are returned; use list-subchannels for children."
   (fxdm:get-all +collection+
                 (db:compile-query `(:= parent_channel_id ,parent-channel-id))
                 :sort '(("name" . :asc))))
+
+(defun update-channel (channel-id &key name description)
+  "Update the NAME and/or DESCRIPTION of CHANNEL-ID.
+Only supplied (non-nil) values are applied."
+  (let ((c (find-channel-by-id channel-id)))
+    (when c
+      (when name
+        (setf (fxdm:model-field c "name") name))
+      (when description
+        (setf (fxdm:model-field c "description") description))
+      (fxdm:save c)
+      c)))
+
+(defun archive-channel (channel-id)
+  "Set the visibility of CHANNEL-ID to \"archived\".
+Archived channels are excluded from the sidebar but not deleted."
+  (let ((c (find-channel-by-id channel-id)))
+    (when c
+      (setf (fxdm:model-field c "visibility") "archived")
+      (fxdm:save c)
+      c)))
+
+(defun unarchive-channel (channel-id)
+  "Restore an archived channel by setting its visibility back to \"private\"."
+  (let ((c (find-channel-by-id channel-id)))
+    (when c
+      (setf (fxdm:model-field c "visibility") "private")
+      (fxdm:save c)
+      c)))
 
 (defun touch-channel (channel-id)
   "Set last_activity on CHANNEL-ID to the current universal time and persist it.

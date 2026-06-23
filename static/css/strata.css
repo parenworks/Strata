@@ -893,24 +893,6 @@ kbd {
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ------------------------------------------------------------------ */
-/* Responsive: collapse workspace rail on narrow screens               */
-/* ------------------------------------------------------------------ */
-
-@media (max-width: 768px) {
-  .strata-shell {
-    grid-template-columns: 0 var(--sidebar-w2) 1fr;
-  }
-  .workspace-rail { display: none; }
-}
-
-@media (max-width: 560px) {
-  .strata-shell {
-    grid-template-columns: 1fr;
-  }
-  .channel-sidebar { display: none; }
-  .channel-sidebar.mobile-open { display: flex; position: fixed; inset: 0; z-index: 200; width: var(--sidebar-w2); }
-}
 
 /* ------------------------------------------------------------------ */
 /* Auth pages (login / setup)                                          */
@@ -1022,3 +1004,239 @@ kbd {
 .auth-submit-btn:hover  { background: var(--accent-hover); }
 .auth-submit-btn:active { transform: scale(0.98); }
 .auth-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* -------------------------------------------------------
+   Attachment display
+   ------------------------------------------------------- */
+
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 4px;
+}
+
+.attachment-item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.attachment-image-link {
+  display: block;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  transition: opacity var(--transition);
+}
+.attachment-image-link:hover { opacity: 0.85; }
+
+.attachment-thumbnail {
+  display: block;
+  max-width: 240px;
+  max-height: 160px;
+  object-fit: cover;
+}
+
+.attachment-file-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+.attachment-file-link:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.attachment-icon { font-size: 0.9rem; }
+.attachment-filename { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.composer-file-input-hidden { display: none; }
+
+.composer-attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 2px;
+  flex-wrap: wrap;
+}
+
+.composer-attachment-preview:empty { display: none; }
+
+/* ------------------------------------------------------------------ */
+/* PWA install banner                                                   */
+/* ------------------------------------------------------------------ */
+
+#pwa-install-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+#pwa-install-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile overlay (behind sidebar when open)                           */
+/* ------------------------------------------------------------------ */
+
+#mobile-overlay {
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+}
+#mobile-overlay[hidden] { display: none; }
+
+/* ------------------------------------------------------------------ */
+/* Mobile toolbar (hamburger + channel title, shown at <= 560px)       */
+/* ------------------------------------------------------------------ */
+
+.mobile-toolbar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 48px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.mobile-toolbar-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  padding: 0;
+}
+.mobile-toolbar-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+.mobile-toolbar-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive: tablet (768px)                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 768px) {
+  .strata-shell {
+    grid-template-columns: 0 var(--sidebar-w2) 1fr;
+  }
+  .workspace-rail { display: none; }
+
+  .post-card { padding: 10px 14px; }
+  .composer   { padding: 10px 14px; }
+
+  .header-actions { gap: 6px; }
+  .header-actions .btn-icon span { display: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive: mobile (560px)                                          */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 560px) {
+  .strata-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .channel-sidebar {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    width: min(var(--sidebar-w2), 85vw);
+    overflow-y: auto;
+  }
+  .channel-sidebar.mobile-open { display: flex; flex-direction: column; }
+
+  .channel-main {
+    grid-column: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .mobile-toolbar { display: flex; }
+
+  .channel-header { display: none; }
+
+  .post-feed {
+    padding: 8px 12px;
+  }
+
+  .post-card {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .post-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+  }
+
+  .composer {
+    padding: 8px 12px;
+    border-radius: 0;
+  }
+
+  .composer-textarea { font-size: 0.9rem; }
+
+  .post-actions { opacity: 1; }
+
+  .thread-pane {
+    position: fixed;
+    inset: 0;
+    z-index: 210;
+    width: 100%;
+    max-width: 100%;
+    border-left: none;
+  }
+
+  .profile-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 210;
+    width: 100%;
+    border-left: none;
+  }
+
+  .search-panel {
+    width: 100%;
+    max-width: 100%;
+  }
+}

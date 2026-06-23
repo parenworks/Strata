@@ -97,6 +97,13 @@ is all that is required to extend the schema during development."
               (created_at         :bigint)
               (parent_channel_id  :integer)))
 
+  (db:create "post_edits"
+             '((post_id    :integer)
+               (editor_id  :integer)
+               (body       :text)
+               (edited_at  :bigint))
+             :if-exists :ignore)
+
   (db:create "push_subscriptions"
              '((user_id    :integer)
                (endpoint   :text)
@@ -114,7 +121,51 @@ is all that is required to extend the schema during development."
               (pinned        :integer)
               (last_activity :bigint)
               (created_at    :bigint)
+              (edited_at     :bigint)
               (search_vector "tsvector")))
 
   (db:ensure-index "posts" "posts_search_vector_gin"
-                   '("search_vector") :method "GIN"))
+                   '("search_vector") :method "GIN")
+
+  (db:create "attachments"
+             '((uuid         :text)
+               (post_id      :integer)
+               (reply_id     :integer)
+               (uploader_id  :integer)
+               (filename     :text)
+               (content_type :text)
+               (size_bytes   :bigint)
+               (created_at   :bigint))
+             :if-exists :ignore)
+
+  (db:ensure-index "attachments" "attachments_post_id_idx"
+                   '("post_id") :method "BTREE")
+
+  (db:ensure-index "attachments" "attachments_reply_id_idx"
+                   '("reply_id") :method "BTREE")
+
+  (db:create "audit_log"
+             '((actor_id    :integer)
+               (action      :text)
+               (target_type :text)
+               (target_id   :integer)
+               (detail      :text)
+               (created_at  :bigint))
+             :if-exists :ignore)
+
+  (db:ensure-index "audit_log" "audit_log_created_at_idx"
+                   '("created_at") :method "BTREE")
+
+  (db:create "api_keys"
+             '((user_id     :integer)
+               (token_hash  :text)
+               (label       :text)
+               (created_at  :bigint)
+               (last_used   :bigint))
+             :if-exists :ignore)
+
+  (db:ensure-index "api_keys" "api_keys_token_hash_idx"
+                   '("token_hash") :method "BTREE")
+
+  (db:ensure-index "api_keys" "api_keys_user_id_idx"
+                   '("user_id") :method "BTREE"))

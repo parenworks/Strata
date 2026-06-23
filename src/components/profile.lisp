@@ -13,12 +13,19 @@
 (fluxion.components:defcomponent profile-component
   :id "strata-profile"
   :slots ((success-msg :initform nil :accessor profile-success-msg)
-          (error-msg   :initform nil :accessor profile-error-msg))
+          (error-msg   :initform nil :accessor profile-error-msg)
+          (new-token   :initform nil :accessor profile-new-token)
+          (key-error   :initform nil :accessor profile-key-error))
 
   :render
   (let* ((session      (fluxion.components:component-session self))
          (u            (when session (fx:session-user session)))
          (username     (if u (user:user-username u) ""))
+         (uid          (if u (user:user-id u) nil))
+         (api-keys     (if uid
+                           (handler-case (apikey:list-api-keys-for-user uid)
+                             (error () nil))
+                           nil))
          (display-name (if u
                            (handler-case (user:field (user:user-id u) "display_name")
                              (error () ""))
@@ -99,6 +106,66 @@
                    :style "width:auto;padding:8px 20px;"
                    :onclick "strataEnablePush()"
                    "Enable notifications")
+
+          (:hr :style "border:none;border-top:1px solid var(--border);margin:24px 0;")
+
+          (:h3 :style "font-size:.85rem;font-weight:600;color:var(--text-secondary);
+                       letter-spacing:.04em;text-transform:uppercase;margin-bottom:16px;"
+               "API Keys")
+          (:p :style "font-size:.82rem;color:var(--text-muted);margin-bottom:16px;"
+            "API keys let agents and scripts access your account via the REST API and "
+            "MCP server. A key is shown once on creation - store it safely.")
+
+          (when (profile-key-error self)
+            (:p :class "auth-error" (profile-key-error self)))
+
+          (when (profile-new-token self)
+            (:div :style "background:var(--bg-elevated);border:1px solid var(--status-open);
+                          border-radius:8px;padding:14px 16px;margin-bottom:16px;"
+              (:p :style "font-size:.8rem;font-weight:600;color:var(--status-open);margin:0 0 8px;"
+                "New key created - copy it now, it will not be shown again:")
+              (:code :style "display:block;font-family:monospace;font-size:.82rem;
+                             word-break:break-all;color:var(--text-primary);"
+                (profile-new-token self))))
+
+          (when api-keys
+            (:table :style "width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:16px;"
+              (:thead
+                (:tr
+                  (:th :style "text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:500;" "Label")
+                  (:th :style "text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:500;" "Created")
+                  (:th :style "text-align:left;padding:6px 8px;color:var(--text-muted);font-weight:500;" "Last used")
+                  (:th)))
+              (:tbody
+                (dolist (k api-keys)
+                  (let ((kid   (fxdm:model-id k))
+                        (label (or (apikey:api-key-field k "label") ""))
+                        (cat   (or (apikey:api-key-field k "created_at") ""))
+                        (lused (apikey:api-key-field k "last_used")))
+                    (:tr :style "border-top:1px solid var(--border);"
+                      (:td :style "padding:8px;" label)
+                      (:td :style "padding:8px;color:var(--text-muted);" cat)
+                      (:td :style "padding:8px;color:var(--text-muted);"
+                           (if lused (princ-to-string lused) "Never"))
+                      (:td :style "padding:8px;text-align:right;"
+                        (:button :type "button"
+                                 :class "auth-submit-btn"
+                                 :style "padding:4px 12px;font-size:.78rem;background:var(--danger-bg);
+                                         color:var(--danger);border-color:var(--danger);width:auto;"
+                                 :data-on-click (format nil
+                                   "/action/strata-profile/revoke-key?key_id=~A" kid)
+                                 "Revoke"))))))))
+
+          (:form :class "auth-form"
+                 :data-on-submit "/action/strata-profile/create-key"
+            (:div :class "auth-field"
+              (:label :for "dp-key-label" "New key label")
+              (:input :type "text" :id "dp-key-label" :name "label"
+                      :placeholder "e.g. opencode, my-script"
+                      :autocomplete "off"))
+            (:button :type "submit" :class "auth-submit-btn"
+                     :style "width:auto;padding:8px 20px;"
+                     "Create API key"))
 
           (:hr :style "border:none;border-top:1px solid var(--border);margin:24px 0;")
 
@@ -216,6 +283,61 @@
            (setf (profile-error-msg   self) (format nil "Error: ~A" e)
                  (profile-success-msg self) nil)
            (fluxion.components:patch-component self)))))))
+
+(fluxion.components:defaction profile-component :create-key (self params)
+  "Create a new API key for the current user.
+The raw token is stored in the new-token slot for one render cycle."
+  (let* ((session (fluxion.components:component-session self))
+         (u       (when session (fx:session-user session)))
+         (uid     (when u (user:user-id u)))
+         (label   (string-trim '(#\Space #\Tab)
+                               (or (cdr (assoc "label" params :test #'string=)) ""))))
+    (setf (profile-new-token self) nil
+          (profile-key-error  self) nil)
+    (cond
+      ((not uid)
+       (setf (profile-key-error self) "Not signed in."))
+      ((zerop (length label))
+       (setf (profile-key-error self) "Label is required."))
+      (t
+       (handler-case
+           (multiple-value-bind (raw-token _key)
+               (apikey:create-api-key uid :label label)
+             (declare (ignore _key))
+             (setf (profile-new-token self) raw-token))
+         (error (e)
+           (setf (profile-key-error self)
+                 (format nil "Could not create key: ~A" e))))))
+    (fluxion.components:patch-component self)))
+
+(fluxion.components:defaction profile-component :revoke-key (self params)
+  "Revoke an API key by ID, if it belongs to the current user."
+  (let* ((session (fluxion.components:component-session self))
+         (u       (when session (fx:session-user session)))
+         (uid     (when u (user:user-id u)))
+         (kid-str (cdr (assoc "key_id" params :test #'string=)))
+         (kid     (when kid-str (handler-case (parse-integer kid-str) (error () nil)))))
+    (setf (profile-new-token self) nil
+          (profile-key-error  self) nil)
+    (cond
+      ((not uid)
+       (setf (profile-key-error self) "Not signed in."))
+      ((not kid)
+       (setf (profile-key-error self) "Invalid key ID."))
+      (t
+       (handler-case
+           (let ((key (apikey:find-api-key-by-id kid)))
+             (cond
+               ((null key)
+                (setf (profile-key-error self) "Key not found."))
+               ((/= uid (apikey:api-key-field key "user_id"))
+                (setf (profile-key-error self) "That key does not belong to your account."))
+               (t
+                (apikey:revoke-api-key kid))))
+         (error (e)
+           (setf (profile-key-error self)
+                 (format nil "Could not revoke key: ~A" e))))))
+    (fluxion.components:patch-component self)))
 
 ;;; -------------------------------------------------------
 ;;; Factory and page renderer

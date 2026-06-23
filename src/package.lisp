@@ -10,6 +10,7 @@
    #:create-workspace
    #:find-workspace-by-id
    #:find-workspace-by-slug
+   #:update-workspace
    #:list-workspaces
    #:workspace-field))
 
@@ -25,6 +26,9 @@
    #:list-channels-for-workspace
    #:list-channels-for-user
    #:list-subchannels
+   #:update-channel
+   #:archive-channel
+   #:unarchive-channel
    #:touch-channel
    #:channel-field))
 
@@ -65,6 +69,8 @@
    #:touch-post
    #:reindex-post
    #:search-posts
+   #:update-post-body
+   #:delete-post
    #:post-field
    #:+post-kinds+
    #:+post-statuses+))
@@ -98,6 +104,7 @@
                     (#:mig   #:fluxion.migrate))
   (:export
    #:record-mention
+   #:extract-usernames
    #:parse-and-record-mentions
    #:list-mentions-for-user
    #:mention-field))
@@ -114,6 +121,15 @@
    #:list-bookmarks-for-user
    #:bookmark-field))
 
+(defpackage #:strata.models.post-edit
+  (:use #:cl)
+  (:local-nicknames (#:db    #:fluxion.db)
+                    (#:fxdm  #:fluxion.db.model))
+  (:export
+   #:record-edit
+   #:list-edits-for-post
+   #:post-edit-field))
+
 (defpackage #:strata.models.channel-read
   (:use #:cl)
   (:local-nicknames (#:db    #:fluxion.db)
@@ -123,6 +139,41 @@
    #:mark-channel-read
    #:get-channel-read
    #:channel-read-field))
+
+(defpackage #:strata.models.attachment
+  (:use #:cl)
+  (:local-nicknames (#:db    #:fluxion.db)
+                    (#:fxdm  #:fluxion.db.model))
+  (:export
+   #:attachment-field
+   #:create-attachment
+   #:find-attachment-by-uuid
+   #:list-attachments-for-post
+   #:list-attachments-for-reply
+   #:delete-attachment
+   #:*upload-dir*))
+
+(defpackage #:strata.models.audit-log
+  (:use #:cl)
+  (:local-nicknames (#:db    #:fluxion.db)
+                    (#:fxdm  #:fluxion.db.model))
+  (:export
+   #:audit-log-field
+   #:record-event
+   #:list-recent-events
+   #:list-events-for-actor))
+
+(defpackage #:strata.models.api-key
+  (:use #:cl)
+  (:local-nicknames (#:db   #:fluxion.db)
+                    (#:fxdm #:fluxion.db.model))
+  (:export
+   #:api-key-field
+   #:create-api-key
+   #:find-api-key-by-token
+   #:find-api-key-by-id
+   #:list-api-keys-for-user
+   #:revoke-api-key))
 
 (defpackage #:strata.auth
   (:use #:cl)
@@ -134,7 +185,12 @@
    #:any-users-p
    #:user-display-name
    #:user-id-from-session
-   #:update-password))
+   #:update-password
+   #:user-disabled-p
+   #:disable-user
+   #:enable-user
+   #:is-admin-p
+   #:get-user-by-id))
 
 (defpackage #:strata.components.login
   (:use #:cl)
@@ -165,7 +221,8 @@
   (:export
    #:shell-component
    #:make-shell
-   #:render-page-for-session))
+   #:render-page-for-session
+   #:render-attachment-list))
 
 (defpackage #:strata.components.inbox
   (:use #:cl)
@@ -181,6 +238,7 @@
 (defpackage #:strata.components.thread
   (:use #:cl)
   (:local-nicknames (#:fx   #:fluxion.server)
+                    (#:fxdm #:fluxion.db.model)
                     (#:user #:fluxion.user))
   (:export #:render-thread-pane))
 
@@ -191,7 +249,9 @@
                     (#:auth   #:fluxion.auth)
                     (#:user   #:fluxion.user)
                     (#:events #:fluxion.events)
-                    (#:render #:fluxion.render))
+                    (#:render #:fluxion.render)
+                    (#:apikey #:strata.models.api-key)
+                    (#:fxdm   #:fluxion.db.model))
   (:export
    #:profile-component
    #:make-profile
@@ -233,6 +293,19 @@
    #:make-search
    #:render-search-page))
 
+(defpackage #:strata.components.admin
+  (:use #:cl)
+  (:local-nicknames (#:fx     #:fluxion.server)
+                    (#:comp   #:fluxion.components)
+                    (#:fxdm   #:fluxion.db.model)
+                    (#:user   #:fluxion.user)
+                    (#:events #:fluxion.events)
+                    (#:render #:fluxion.render))
+  (:export
+   #:admin-component
+   #:make-admin
+   #:render-admin-page))
+
 (defpackage #:strata.migrations
   (:use #:cl)
   (:local-nicknames (#:db #:fluxion.db))
@@ -248,6 +321,28 @@
    #:*db-backend*
    #:make-app
    #:connect-db))
+
+(defpackage #:strata.api
+  (:use #:cl)
+  (:local-nicknames (#:fxapi #:fluxion.api)
+                    (#:fxdm  #:fluxion.db.model))
+  (:export
+   #:setup-routes
+   #:handle-api-request
+   #:authenticate-request))
+
+(defpackage #:strata.mcp
+  (:use #:cl)
+  (:local-nicknames (#:fxapi #:fluxion.api))
+  (:export
+   #:handle-mcp-request
+   #:jsonrpc-ok
+   #:jsonrpc-error
+   #:bearer-token
+   #:authenticate
+   #:handle-initialize
+   #:handle-tools-list
+   #:handle-resources-list))
 
 (defpackage #:strata.server
   (:use #:cl)

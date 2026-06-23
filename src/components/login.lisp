@@ -63,6 +63,9 @@ On failure sets the error-msg slot and re-renders."
     (handler-case
         (progn
           (auth:login username password)
+          (when (strata.auth:user-disabled-p username)
+            (auth:logout)
+            (error 'fluxion.auth:authentication-failed :username username))
           (list (events:make-redirect-event "/")))
       (fluxion.auth:authentication-failed ()
         (setf (login-error-msg self) "Invalid username or password.")

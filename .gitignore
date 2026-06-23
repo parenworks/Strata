@@ -1,0 +1,17 @@
+# Compiled Lisp
+**/*.fasl
+**/*.fas
+**/*.lib
+**/*.o
+**/*.lx64fsl
+
+# Uploads (user-generated content, managed outside git)
+uploads/
+
+# VAPID keys (contain private key material)
+config/vapid-keys.lisp
+
+# Editor and OS
+*~
+\#*\#
+.DS_Store

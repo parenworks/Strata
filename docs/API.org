@@ -246,6 +246,14 @@ Create a fresh shell-component instance for use as a per-session factory.
 Called by the factory registered in strata.app:make-app via
 fluxion.server:register-component-factory.
 
+*** =render-attachment-list=
+
+#+begin_example
+(render-attachment-list attachments)
+#+end_example
+
+Emit HTML for a list of attachment data-models.
+
 *** =render-page-for-session=
 
 #+begin_example
@@ -316,6 +324,68 @@ Create all Strata tables if they do not already exist.
 Safe to call on every startup. Adding a new table here and restarting
 is all that is required to extend the schema during development.
 
+* Package =strata.models.attachment=
+
+** Functions
+
+*** =attachment-field=
+
+#+begin_example
+(attachment-field attachment field)
+#+end_example
+
+Return the value of FIELD in the ATTACHMENT data-model object.
+
+*** =create-attachment=
+
+#+begin_example
+(create-attachment &key post-id reply-id uploader-id filename content-type size-bytes file-data)
+#+end_example
+
+Persist an attachment record and write FILE-DATA (a byte vector) to disk.
+Exactly one of POST-ID or REPLY-ID must be non-nil.
+Returns the saved data-model.
+
+*** =delete-attachment=
+
+#+begin_example
+(delete-attachment uuid)
+#+end_example
+
+Remove the attachment record and its file from disk.
+Returns T if the record existed, NIL otherwise.
+
+*** =find-attachment-by-uuid=
+
+#+begin_example
+(find-attachment-by-uuid uuid)
+#+end_example
+
+Return the attachment data-model with UUID, or NIL.
+
+*** =list-attachments-for-post=
+
+#+begin_example
+(list-attachments-for-post post-id)
+#+end_example
+
+Return all attachments linked to POST-ID, ordered by created_at ascending.
+
+*** =list-attachments-for-reply=
+
+#+begin_example
+(list-attachments-for-reply reply-id)
+#+end_example
+
+Return all attachments linked to REPLY-ID, ordered by created_at ascending.
+
+** Variables
+
+*** =*upload-dir*=
+
+Root directory where uploaded files are stored.
+Override before starting the server if a different path is required.
+
 * Package =strata.models.bookmark=
 
 ** Functions
@@ -372,6 +442,15 @@ Is a no-op if no such record exists.
 * Package =strata.models.channel=
 
 ** Functions
+
+*** =archive-channel=
+
+#+begin_example
+(archive-channel channel-id)
+#+end_example
+
+Set the visibility of CHANNEL-ID to "archived".
+Archived channels are excluded from the sidebar but not deleted.
 
 *** =channel-field=
 
@@ -451,6 +530,15 @@ Return all direct child channels of PARENT-CHANNEL-ID, ordered by name.
 Set last_activity on CHANNEL-ID to the current universal time and persist it.
 Call this whenever a post is created or replied to in the channel so the
 channel sidebar ordering stays fresh.
+
+*** =update-channel=
+
+#+begin_example
+(update-channel channel-id &key name description)
+#+end_example
+
+Update the NAME and/or DESCRIPTION of CHANNEL-ID.
+Only supplied (non-nil) values are applied.
 
 * Package =strata.models.channel-member=
 
@@ -544,6 +632,15 @@ This drives the unread count badge in the channel sidebar.
 
 ** Functions
 
+*** =extract-usernames=
+
+#+begin_example
+(extract-usernames body)
+#+end_example
+
+Return a list of unique username strings found as @username tokens in BODY.
+Matches word characters after @, e.g. @alice or @bob_smith.
+
 *** =list-mentions-for-user=
 
 #+begin_example
@@ -604,6 +701,15 @@ BODY is the plain-text (or lightly marked-up) content.
 STATUS defaults to "open"; valid values are in +post-statuses+.
 PINNED, if non-nil, pins the post to the top of the feed.
 Fires :post-created with the new post's _id if that hook is registered.
+
+*** =delete-post=
+
+#+begin_example
+(delete-post post-id)
+#+end_example
+
+Permanently remove POST-ID and all its replies, reactions, and mentions.
+Returns T if the post existed, NIL otherwise.
 
 *** =find-post-by-id=
 
@@ -676,6 +782,16 @@ feed ordering always reflects the most recent activity on a thread.
 If the :post-touched hook has not been registered this call is a no-op for
 the hook but the database update still happens.
 
+*** =update-post-body=
+
+#+begin_example
+(update-post-body post-id new-body &key (editor-id 0))
+#+end_example
+
+Replace the body of POST-ID with NEW-BODY and stamp edited_at.
+Records the previous body in post_edits before overwriting.
+Reindexes the search_vector and touches the post to resurface it.
+
 ** Variables
 
 *** =+post-kinds+=
@@ -685,6 +801,36 @@ Valid post kind values.
 *** =+post-statuses+=
 
 Valid post status values.
+
+* Package =strata.models.post-edit=
+
+** Functions
+
+*** =list-edits-for-post=
+
+#+begin_example
+(list-edits-for-post post-id)
+#+end_example
+
+Return all edit-history rows for POST-ID, newest first.
+
+*** =post-edit-field=
+
+#+begin_example
+(post-edit-field edit field)
+#+end_example
+
+Return the value of FIELD in the post-edit data-model object.
+
+*** =record-edit=
+
+#+begin_example
+(record-edit post-id editor-id old-body)
+#+end_example
+
+Save the pre-edit body of POST-ID as a history row.
+EDITOR-ID is the user who made the change.
+OLD-BODY is the body text that is being replaced.
 
 * Package =strata.models.push-subscription=
 

@@ -117,6 +117,36 @@ Optionally filter to a specific CHANNEL-ID."
       (format t "~&[strata] search-posts error: ~A~%" e)
       nil)))
 
+(defun update-post-body (post-id new-body &key (editor-id 0))
+  "Replace the body of POST-ID with NEW-BODY and stamp edited_at.
+Records the previous body in post_edits before overwriting.
+Reindexes the search_vector and touches the post to resurface it."
+  (let ((p (find-post-by-id post-id)))
+    (when p
+      (let ((old-body (fxdm:model-field p "body")))
+        (strata.models.post-edit:record-edit post-id editor-id old-body))
+      (setf (fxdm:model-field p "body")      new-body
+            (fxdm:model-field p "edited_at") (get-universal-time))
+      (fxdm:save p)
+      (reindex-post post-id)
+      (touch-post post-id)
+      p)))
+
+(defun delete-post (post-id)
+  "Permanently remove POST-ID and all its replies, reactions, and mentions.
+Returns T if the post existed, NIL otherwise."
+  (let ((p (find-post-by-id post-id)))
+    (when p
+      (db:remove "replies"    (db:compile-query `(:= post_id ,post-id)))
+      (db:remove "reactions"  (db:compile-query
+                                `(:and (:= target_type "post")
+                                       (:= target_id   ,post-id))))
+      (db:remove "mentions"   (db:compile-query `(:= post_id ,post-id)))
+      (db:remove "bookmarks"  (db:compile-query `(:= post_id ,post-id)))
+      (db:remove "post_edits" (db:compile-query `(:= post_id ,post-id)))
+      (db:remove "posts"      (db:compile-query `(:= _id ,post-id)))
+      t)))
+
 (defun set-post-status (post-id status)
   "Set the status field of POST-ID to STATUS and call touch-post.
 STATUS must be one of +post-statuses+: \"open\", \"resolved\", \"decided\", \"done\".

@@ -48,6 +48,11 @@ Runs in a background thread so it never blocks the write path."
                    (ignore-errors
                     (strata.push:notify-mentioned-users uids channel-name poster-name)))
                  :name "strata-push-fanout"))))
+  (unless (hooks:hook-defined-p :post-touched)
+    (hooks:define-hook
+     :post-touched
+     :description "Fired when a post is updated or receives activity."
+     :args '(:post-id)))
   (hooks:add-trigger
    :post-touched :live-resort
    :handler (lambda (&rest args)
