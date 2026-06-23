@@ -87,10 +87,8 @@ if [[ ! -f "$SRCONF" ]]; then
   echo "==> Writing ASDF source-registry config..."
   mkdir -p "$(dirname "$SRCONF")"
   cat > "$SRCONF" <<SREOF
-(:source-registry
- (:tree "$FLUXION_DIR")
- (:tree "$STRATA_DIR")
- :inherit-configuration)
+(:tree "$FLUXION_DIR")
+(:tree "$STRATA_DIR")
 SREOF
 fi
 
