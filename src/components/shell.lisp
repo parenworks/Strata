@@ -50,7 +50,7 @@
   "Return top-level channel data-models visible to USER-ID, excluding archived."
   (handler-case
       (let* ((member-ids (load-member-channel-ids user-id))
-             (all (strata.models.channel:list-channels-for-user 1 user-id member-ids)))
+             (all (strata.models.channel:list-channels-for-user (load-workspace-id) user-id member-ids)))
         (remove-if (lambda (ch)
                      (string= (strata.models.channel:channel-field ch "visibility")
                                "archived"))
@@ -66,7 +66,7 @@
 (defun load-posts (channel-slug)
   "Return open post data-models for CHANNEL-SLUG, or NIL if DB is unavailable."
   (handler-case
-      (let ((ch (strata.models.channel:find-channel-by-slug 1 channel-slug)))
+      (let ((ch (strata.models.channel:find-channel-by-slug (load-workspace-id) channel-slug)))
         (when ch
           (strata.models.post:list-posts-for-channel
            (fxdm:model-id ch) :limit 50)))
@@ -75,7 +75,7 @@
 (defun load-resolved-posts (channel-slug)
   "Return resolved/decided/done post data-models for CHANNEL-SLUG."
   (handler-case
-      (let ((ch (strata.models.channel:find-channel-by-slug 1 channel-slug)))
+      (let ((ch (strata.models.channel:find-channel-by-slug (load-workspace-id) channel-slug)))
         (when ch
           (strata.models.post:list-posts-for-channel
            (fxdm:model-id ch) :include-resolved t :limit 20)))
@@ -154,6 +154,13 @@
 (defun session-author-id (session)
   "Return the integer user ID from SESSION, or 0 for unauthenticated."
   (strata.auth:user-id-from-session session))
+
+(defun load-workspace-id ()
+  "Return the integer _id of the default workspace, or 1 as fallback."
+  (handler-case
+      (let ((ws (strata.models.workspace:find-workspace-by-slug "default")))
+        (if ws (fxdm:model-id ws) 1))
+    (error () 1)))
 
 (defun load-workspace-name ()
   "Return the display name of the default workspace, or \"Strata\" as fallback."
@@ -564,7 +571,7 @@ Touches the channel so the sidebar ordering stays fresh."
          (user-id (if session (session-author-id session) 0)))
     (when (and body (plusp (length (string-trim '(#\Space #\Tab #\Newline) body))))
       (handler-case
-          (let ((ch (strata.models.channel:find-channel-by-slug 1 slug)))
+          (let ((ch (strata.models.channel:find-channel-by-slug (load-workspace-id) slug)))
             (when ch
               (let* ((channel-id (fxdm:model-id ch))
                      (post       (strata.models.post:create-post
