@@ -34,6 +34,8 @@ to /action/strata-shell/<action-name>."
   (fluxion.server:register-component-factory
    *app* "strata-setup" #'strata.components.login:make-setup)
   (fluxion.server:register-component-factory
+   *app* "strata-register" #'strata.components.login:make-register)
+  (fluxion.server:register-component-factory
    *app* "strata-profile" #'strata.components.profile:make-profile)
   (fluxion.server:register-component-factory
    *app* "strata-inbox" #'strata.components.inbox:make-inbox)

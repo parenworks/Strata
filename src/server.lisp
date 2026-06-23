@@ -248,6 +248,10 @@ Guard logic:
       ((string= path "/login")
        (html-response (strata.components.login:render-login-page session)))
 
+      ;; Self-signup registration page
+      ((string= path "/register")
+       (html-response (strata.components.login:render-register-page session)))
+
       ;; Guard: no users yet -> first-run setup
       ((not (strata.auth:any-users-p))
        (redirect-response "/setup"))

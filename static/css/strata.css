@@ -551,7 +551,7 @@ body {
 .post-status-done     { color: var(--status-resolved); background: var(--status-resolved-bg); }
 
 .post-body {
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   font-size: 0.925rem;
   color: var(--text-primary);
   line-height: 1.65;
@@ -903,13 +903,33 @@ kbd {
 /* Auth pages (login / setup)                                          */
 /* ------------------------------------------------------------------ */
 
+.sidebar-admin-link {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 2px 0;
+  opacity: 0.8;
+}
+.sidebar-admin-link:hover { opacity: 1; }
+
+body:has(.auth-shell),
+html:has(.auth-shell) {
+  height: auto;
+  overflow: visible;
+}
+
 .auth-shell {
   min-height: 100dvh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   background: var(--bg-app);
   padding: 24px 16px;
+  overflow-y: visible;
 }
 
 .auth-card {

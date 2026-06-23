@@ -27,15 +27,15 @@
                              (error () nil))
                            nil))
          (display-name (if u
-                           (handler-case (user:field (user:user-id u) "display_name")
+                           (handler-case (user:field username "display_name")
                              (error () ""))
                            ""))
          (title-field  (if u
-                           (handler-case (user:field (user:user-id u) "title")
+                           (handler-case (user:field username "title")
                              (error () ""))
                            ""))
          (bio-field    (if u
-                           (handler-case (user:field (user:user-id u) "bio")
+                           (handler-case (user:field username "bio")
                              (error () ""))
                            "")))
     (spinneret:with-html-string
@@ -233,6 +233,7 @@
   (let* ((session      (fluxion.components:component-session self))
          (u            (when session (fx:session-user session)))
          (uid          (when u (user:user-id u)))
+         (username     (when u (user:user-username u)))
          (display-name (cdr (assoc "display_name" params :test #'string=)))
          (title-val    (cdr (assoc "title"        params :test #'string=)))
          (bio-val      (cdr (assoc "bio"          params :test #'string=))))
@@ -242,9 +243,9 @@
           (fluxion.components:patch-component self))
         (handler-case
             (progn
-              (when display-name (user:set-field uid "display_name" display-name))
-              (when title-val    (user:set-field uid "title"        title-val))
-              (when bio-val      (user:set-field uid "bio"          bio-val))
+              (when display-name (user:set-field username "display_name" display-name))
+              (when title-val    (user:set-field username "title"        title-val))
+              (when bio-val      (user:set-field username "bio"          bio-val))
               (setf (profile-success-msg self) "Profile saved."
                     (profile-error-msg   self) nil)
               (fluxion.components:patch-component self))

@@ -207,8 +207,10 @@
    #:setup-component
    #:make-login
    #:make-setup
+   #:make-register
    #:render-login-page
-   #:render-setup-page))
+   #:render-setup-page
+   #:render-register-page))
 
 (defpackage #:strata.components.shell
   (:use #:cl)

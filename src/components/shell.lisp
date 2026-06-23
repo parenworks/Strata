@@ -16,6 +16,17 @@
       (string (char-upcase (char name 0)))
       "?"))
 
+(defun post-author-name (author-id)
+  "Return a display name string for AUTHOR-ID (integer), or \"?\" on failure."
+  (handler-case
+      (let ((u (strata.auth:get-user-by-id author-id)))
+        (if u
+            (or (strata.auth:user-display-name u)
+                (user:user-username u)
+                "?")
+            "?"))
+    (error () "?")))
+
 (defun format-post-time (universal-time)
   "Format a universal-time integer as a short human-readable time."
   (when universal-time
@@ -187,8 +198,13 @@
 
   :render
   (let* ((session        (fluxion.components:component-session self))
+         (raw-username   (let ((u (when session (fx:session-user session))))
+                           (when u (user:user-username u))))
          (username       (if session (session-display-name session) "Guest"))
          (user-id        (if session (session-author-id session) 0))
+         (adminp         (when raw-username
+                           (handler-case (strata.auth:is-admin-p raw-username)
+                             (error () nil))))
          (workspace-name (load-workspace-name))
          (db-channels    (load-channels user-id))
          (db-posts       (load-posts (shell-active-channel self)))
@@ -217,7 +233,12 @@
                   :class "user-name-sm"
                   :style "text-decoration:none;color:inherit;"
                   :title "Edit profile"
-                  username)))
+                  username))
+            (when adminp
+              (:a :href "/admin"
+                  :class "sidebar-admin-link"
+                  :title "Admin panel"
+                  "Admin")))
 
           (:div :class "channel-list-scroll"
             (:div :class "channel-section-label"
@@ -335,7 +356,7 @@
             (if posts
                 (dolist (post posts)
                   (let* ((post-id  (fxdm:model-id post))
-                         (author   (or (post-field post "author_id") "?"))
+                         (author   (post-author-name (post-field post "author_id")))
                          (kind     (or (post-field post "kind") "message"))
                          (status   (or (post-field post "status") "open"))
                          (body     (or (post-field post "body") ""))
@@ -344,10 +365,10 @@
                          (replies      (load-reply-count post-id))
                          (attachments  (load-attachments :post post-id)))
                     (:article :class (if pinned "post-card pinned" "post-card")
-                      (:div :class "post-avatar" (initial (princ-to-string author)))
+                      (:div :class "post-avatar" (initial author))
                       (:div :class "post-content"
                         (:div :class "post-meta"
-                          (:span :class "post-author" (princ-to-string author))
+                          (:span :class "post-author" author)
                           (:span :class "post-time"
                                  (format-post-time (post-field post "created_at")))
                           (unless (string= kind "message")
@@ -588,7 +609,9 @@ Touches the channel so the sidebar ordering stays fresh."
                 (strata.models.channel:touch-channel channel-id))))
         (error (e)
           (format t "~&[strata] post action error: ~A~%" e))))
-    (fluxion.components:patch-component self)))
+    (append (fluxion.components:patch-component self)
+            (list (events:make-script-event
+                   "var ta=document.querySelector('.composer-textarea');if(ta){ta.value='';}")))))
 
 (fluxion.components:defaction shell-component :open-thread (self params)
   "Open the thread pane for the post identified by the id param."

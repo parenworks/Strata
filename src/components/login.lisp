@@ -52,7 +52,10 @@
                     :placeholder "password"))
           (:button :type "submit" :class "auth-submit-btn"
                    :data-disable-during-request t
-            "Sign in"))))))
+            "Sign in"))
+        (:p :class "auth-alt-link"
+          "No account? "
+          (:a :href "/register" "Create one"))))))
 
 (fluxion.components:defaction login-component :login (self params)
   "Authenticate with the provided username and password.
@@ -195,5 +198,89 @@ On success, redirects to /. On failure, shows an error message."
     (unless component
       (error "[strata] setup component missing from session"))
     (render-auth-page "Strata - Setup"
+                      (fluxion.components:render component)
+                      csrf)))
+
+;;; -------------------------------------------------------
+;;; Self-signup register component
+;;; -------------------------------------------------------
+
+(fluxion.components:defcomponent register-component
+  :id "strata-register"
+  :slots ((error-msg :initform nil :accessor register-error-msg))
+
+  :render
+  (spinneret:with-html-string
+    (:div :id (fluxion.components:component-id self)
+          :class "auth-shell"
+      (:div :class "auth-card"
+        (:div :class "auth-logo" "Strata")
+        (:p :class "auth-tagline" "Create your account")
+        (when (register-error-msg self)
+          (:p :class "auth-error" (register-error-msg self)))
+        (:form :class "auth-form"
+               :data-on-submit "/action/strata-register/register"
+          (:div :class "auth-field"
+            (:label :for "reg-display-name" "Display name")
+            (:input :type "text" :id "reg-display-name" :name "display_name"
+                    :required t :placeholder "e.g. Jane Smith"))
+          (:div :class "auth-field"
+            (:label :for "reg-username" "Username")
+            (:input :type "text" :id "reg-username" :name "username"
+                    :autocomplete "username" :required t
+                    :placeholder "e.g. jsmith"))
+          (:div :class "auth-field"
+            (:label :for "reg-password" "Password")
+            (:input :type "password" :id "reg-password" :name "password"
+                    :autocomplete "new-password" :required t
+                    :placeholder "choose a strong password"))
+          (:button :type "submit" :class "auth-submit-btn"
+                   :data-disable-during-request t
+            "Create account & sign in"))
+        (:p :class "auth-alt-link"
+          "Already have an account? "
+          (:a :href "/login" "Sign in"))))))
+
+(fluxion.components:defaction register-component :register (self params)
+  "Create a new regular user account and log them in.
+Expects params: username, password, display_name."
+  (let ((username     (cdr (assoc "username"     params :test #'string=)))
+        (password     (cdr (assoc "password"     params :test #'string=)))
+        (display-name (cdr (assoc "display_name" params :test #'string=))))
+    (cond
+      ((or (null username) (zerop (length (string-trim '(#\Space) username))))
+       (setf (register-error-msg self) "Username is required.")
+       (fluxion.components:patch-component self))
+      ((or (null password) (< (length password) 8))
+       (setf (register-error-msg self) "Password must be at least 8 characters.")
+       (fluxion.components:patch-component self))
+      (t
+       (handler-case
+           (progn
+             (user:create username
+                          :password password
+                          :fields (when (and display-name
+                                             (plusp (length (string-trim '(#\Space) display-name))))
+                                    (list (cons "display_name" display-name))))
+             (auth:login username password)
+             (list (events:make-redirect-event "/")))
+         (fluxion.user:user-already-exists ()
+           (setf (register-error-msg self) "That username is already taken.")
+           (fluxion.components:patch-component self))
+         (error (e)
+           (setf (register-error-msg self) (format nil "Error: ~A" e))
+           (fluxion.components:patch-component self)))))))
+
+(defun make-register ()
+  "Create a fresh register-component instance for the per-session factory."
+  (make-instance 'register-component))
+
+(defun render-register-page (session)
+  "Render the self-signup registration page HTML for SESSION."
+  (let ((component (fx:session-component session "strata-register"))
+        (csrf (fx:session-csrf-token session)))
+    (unless component
+      (error "[strata] register component missing from session"))
+    (render-auth-page "Strata - Create Account"
                       (fluxion.components:render component)
                       csrf)))
