@@ -208,21 +208,16 @@ Requires an authenticated session to prevent unauthenticated scraping."
                  (disposition (if (%image-content-type-p ctype)
                                   "inline"
                                   (format nil "attachment; filename=\"~A\"" filename))))
-            (with-open-file (in file-path
-                                :direction         :input
-                                :element-type      '(unsigned-byte 8)
-                                :if-does-not-exist nil)
-              (if (null in)
-                  (list 404 '(:content-type "text/plain") '("Not found"))
-                  (let* ((size (file-length in))
-                         (buf  (make-array size :element-type '(unsigned-byte 8))))
-                    (read-sequence buf in)
-                    (list 200
-                          (list :content-type          ctype
-                                :content-disposition   disposition
-                                :content-length        size
-                                :x-content-type-options "nosniff")
-                          (list buf))))))))
+            ;; Return the file as a PATHNAME body so Clack/Woo streams it as
+            ;; raw binary and sets Content-Length itself. Wrapping a byte
+            ;; vector in a list makes Woo print the octets as decimal text.
+            (if (probe-file file-path)
+                (list 200
+                      (list :content-type           ctype
+                            :content-disposition    disposition
+                            :x-content-type-options "nosniff")
+                      (pathname file-path))
+                (list 404 '(:content-type "text/plain") '("Not found")))))))
     (error (e)
       (format t "~&[strata] download error: ~A~%" e)
       (list 500 '(:content-type "text/plain") '("Internal server error")))))
