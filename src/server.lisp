@@ -82,7 +82,7 @@ and download URL, or a JSON error."
   (unless (fluxion.server:session-user session)
     (return-from upload-handler
       (list 401 '(:content-type "application/json")
-            '("{\"error\":\"unauthenticated\"}")))
+            '("{\"error\":\"unauthenticated\"}"))))
   (handler-case
       (let* ((content-type (or (getf env :content-type) ""))
              (body-stream  (getf env :raw-body))
@@ -90,11 +90,11 @@ and download URL, or a JSON error."
         (unless (search "multipart/form-data" content-type)
           (return-from upload-handler
             (list 400 '(:content-type "application/json")
-                  '("{\"error\":\"expected multipart/form-data\"}")))
+                  '("{\"error\":\"expected multipart/form-data\"}"))))
         (when (> content-len *max-upload-bytes*)
           (return-from upload-handler
             (list 413 '(:content-type "application/json")
-                  '("{\"error\":\"file too large\"}")))
+                  '("{\"error\":\"file too large\"}"))))
         (let* ((boundary  (let ((pos (search "boundary=" content-type)))
                             (when pos
                               (string-trim '(#\Space #\Tab #\Return #\Newline)
@@ -138,7 +138,7 @@ and download URL, or a JSON error."
           (unless file-part
             (return-from upload-handler
               (list 400 '(:content-type "application/json")
-                    '("{\"error\":\"no file field\"}")))
+                    '("{\"error\":\"no file field\"}"))))
           (let* ((orig-name (or (rfc2388:get-file-name
                                  (rfc2388:mime-part-headers file-part))
                                 "upload"))
@@ -166,11 +166,11 @@ and download URL, or a JSON error."
             (list 200 '(:content-type "application/json")
                   (list (format nil
                                 "{\"ok\":true,\"uuid\":\"~A\",\"url\":\"/uploads/~A/~A\",\"filename\":\"~A\",\"size\":~D}"
-                                uuid uuid safe-name safe-name size)))))))))
+                                uuid uuid safe-name safe-name size))))))
     (error (e)
       (format t "~&[strata] upload error: ~A~%" e)
       (list 500 '(:content-type "application/json")
-            '("{\"error\":\"internal server error\"}"))))))
+            '("{\"error\":\"internal server error\"}")))))
 
 (defun download-handler (session path)
   "Handle GET /uploads/<uuid>/<filename> - serve an uploaded file.
@@ -178,7 +178,7 @@ Requires an authenticated session to prevent unauthenticated scraping."
   (unless (fluxion.server:session-user session)
     (return-from download-handler
       (list 401 '(:content-type "application/json")
-            '("{\"error\":\"unauthenticated\"}")))
+            '("{\"error\":\"unauthenticated\"}"))))
   (handler-case
       (let* ((parts    (cl-ppcre:split "/" path :sharedp nil))
              (uuid     (find-if (lambda (s) (> (length s) 0))
@@ -218,7 +218,7 @@ Requires an authenticated session to prevent unauthenticated scraping."
                           (list buf))))))))
     (error (e)
       (format t "~&[strata] download error: ~A~%" e)
-      (list 500 '(:content-type "text/plain") '("Internal server error"))))))
+      (list 500 '(:content-type "text/plain") '("Internal server error")))))
 
 (defun page-handler (application session env)
   "Route an incoming page GET to the correct component.
