@@ -142,17 +142,20 @@ UNIT_FILE="/etc/systemd/system/strata.service"
 TEMPLATE_FILE="$STRATA_DIR/strata.service"
 echo "==> Rendering systemd unit from $TEMPLATE_FILE to $UNIT_FILE ..."
 
-sed \
-  -e "s|__SERVICE_USER__|$SERVICE_USER|g" \
-  -e "s|__STRATA_DIR__|$STRATA_DIR|g" \
-  -e "s|__PORT__|$PORT|g" \
-  -e "s|__BIND_HOST__|$BIND_HOST|g" \
-  -e "s|__DB_NAME__|$DB_NAME|g" \
-  -e "s|__DB_USER__|$DB_USER|g" \
-  -e "s|__DB_PASSWORD__|$DB_PASS|g" \
-  -e "s|__DB_HOST__|$DB_HOST|g" \
-  -e "s|__DB_PORT__|$DB_PORT|g" \
-  "$TEMPLATE_FILE" | sudo tee "$UNIT_FILE" > /dev/null
+# Substitute placeholders using bash parameter expansion (literal, not
+# regex) so values containing special characters such as | & / \ in the
+# DB password cannot break the rendering.
+UNIT_CONTENT="$(cat "$TEMPLATE_FILE")"
+UNIT_CONTENT="${UNIT_CONTENT//__SERVICE_USER__/$SERVICE_USER}"
+UNIT_CONTENT="${UNIT_CONTENT//__STRATA_DIR__/$STRATA_DIR}"
+UNIT_CONTENT="${UNIT_CONTENT//__PORT__/$PORT}"
+UNIT_CONTENT="${UNIT_CONTENT//__BIND_HOST__/$BIND_HOST}"
+UNIT_CONTENT="${UNIT_CONTENT//__DB_NAME__/$DB_NAME}"
+UNIT_CONTENT="${UNIT_CONTENT//__DB_USER__/$DB_USER}"
+UNIT_CONTENT="${UNIT_CONTENT//__DB_PASSWORD__/$DB_PASS}"
+UNIT_CONTENT="${UNIT_CONTENT//__DB_HOST__/$DB_HOST}"
+UNIT_CONTENT="${UNIT_CONTENT//__DB_PORT__/$DB_PORT}"
+printf '%s\n' "$UNIT_CONTENT" | sudo tee "$UNIT_FILE" > /dev/null
 
 # ------------------------------------------------------------------
 # 6. Enable and start
