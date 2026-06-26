@@ -85,7 +85,13 @@ and download URL, or a JSON error."
             '("{\"error\":\"unauthenticated\"}"))))
   (handler-case
       (let* ((content-type (or (getf env :content-type) ""))
-             (body-stream  (getf env :raw-body))
+             (raw-body     (getf env :raw-body))
+             ;; Woo delivers the request body as a binary (octet) stream,
+             ;; but rfc2388 reads characters. Wrap it in a latin-1 flexi
+             ;; stream so READ-CHAR works and bytes round-trip faithfully.
+             (body-stream  (when raw-body
+                             (flexi-streams:make-flexi-stream
+                              raw-body :external-format :latin-1)))
              (content-len  (or (getf env :content-length) 0)))
         (unless (search "multipart/form-data" content-type)
           (return-from upload-handler
@@ -99,7 +105,8 @@ and download URL, or a JSON error."
                             (when pos
                               (string-trim '(#\Space #\Tab #\Return #\Newline)
                                            (subseq content-type (+ pos 9))))))
-               (parts     (rfc2388:parse-mime body-stream boundary))
+               (parts     (rfc2388:parse-mime body-stream boundary
+                                               :write-content-to-file nil))
                (file-part (find-if
                            (lambda (p)
                              (let ((cd (rfc2388:find-content-disposition-header

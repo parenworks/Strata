@@ -26,7 +26,8 @@
                "dexador"
                "cl-base64"
                "quri"
-               "rfc2388")
+               "rfc2388"
+               "flexi-streams")
   :serial t
   :components
   ((:module "src"
