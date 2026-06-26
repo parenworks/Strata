@@ -217,7 +217,7 @@ Requires an authenticated session to prevent unauthenticated scraping."
                             :content-disposition    disposition
                             :x-content-type-options "nosniff")
                       (pathname file-path))
-                (list 404 '(:content-type "text/plain") '("Not found")))))))
+                (list 404 '(:content-type "text/plain") '("Not found"))))))
     (error (e)
       (format t "~&[strata] download error: ~A~%" e)
       (list 500 '(:content-type "text/plain") '("Internal server error")))))
