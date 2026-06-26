@@ -581,7 +581,7 @@ current *HTML* stream rather than being read as undefined functions."
                      (ch-kind  (when ch (strata.models.channel:channel-field ch "kind"))))
                 (when ch
                   (:div :class "thread-pane-wrap"
-                    (:div :class "thread-pane"
+                    (:div :class "thread-pane open"
                       (:div :class "thread-pane-header"
                         (:span :class "thread-pane-title" "Channel Settings")
                         (:button :class "thread-close-btn" :type "button"
