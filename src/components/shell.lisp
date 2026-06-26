@@ -192,9 +192,11 @@
   :id "strata-shell"
   :slots ((active-channel     :initform "general" :accessor shell-active-channel)
           (thread-post-id     :initform nil       :accessor shell-thread-post-id)
+          (expanded-thread-id :initform nil       :accessor shell-expanded-thread-id)
           (editing-post-id    :initform nil       :accessor shell-editing-post-id)
-          (managing-channel-id :initform nil      :accessor shell-managing-channel-id)
-          (creating-channel-p  :initform nil      :accessor shell-creating-channel-p))
+          (managing-channel-id       :initform nil      :accessor shell-managing-channel-id)
+          (creating-channel-p        :initform nil      :accessor shell-creating-channel-p)
+          (creating-channel-under-id :initform nil      :accessor shell-creating-channel-under-id))
 
   :render
   (let* ((session        (fluxion.components:component-session self))
@@ -210,6 +212,10 @@
          (db-posts       (load-posts (shell-active-channel self)))
          (channels       db-channels)
          (posts          db-posts)
+         (active-ch      (find (shell-active-channel self) channels
+                                :test #'string=
+                                :key (lambda (ch) (strata.models.channel:channel-field ch "slug"))))
+         (active-channel-id (when active-ch (fxdm:model-id active-ch)))
          (thread-id      (shell-thread-post-id self))
          (bookmarked-ids (load-bookmarked-ids user-id)))
     (spinneret:with-html-string
@@ -240,6 +246,17 @@
                   (:select :class "modal-select" :id "new-ch-kind" :name "kind"
                     (:option :value "open" "Public - anyone can join")
                     (:option :value "private" "Private - invite only")))
+                (let ((under-id (shell-creating-channel-under-id self)))
+                  (if under-id
+                      (:input :type "hidden" :name "parent_channel_id" :value (princ-to-string under-id))
+                      (:div :class "modal-field"
+                        (:label :for "new-ch-parent" "Parent channel (optional)")
+                        (:select :class "modal-select" :id "new-ch-parent" :name "parent_channel_id"
+                          (:option :value "" "None (top-level channel)")
+                          (dolist (ch channels)
+                            (let ((ch-id (fxdm:model-id ch))
+                                  (ch-name (strata.models.channel:channel-field ch "name")))
+                              (:option :value (princ-to-string ch-id) ch-name)))))))
                 (:div :class "modal-actions"
                   (:button :type "button" :class "modal-btn-ghost"
                            :data-on-click "/action/strata-shell/hide-new-channel"
@@ -361,6 +378,10 @@
               (:button :class "header-btn" :title "Search" :type "button" "🔍")
               (:button :class "header-btn" :title "Members" :type "button" "👥")
               (:button :class "header-btn" :title "Pinned" :type "button" "📌")
+              (when active-channel-id
+                (:button :class "header-btn" :title "Add sub-channel" :type "button"
+                         :data-on-click (format nil "/action/strata-shell/create-sub-channel?id=~A" active-channel-id)
+                         "⊕"))
               (:button :id "pwa-install-btn" :type "button"
                        :hidden t
                        :onclick "strataInstallApp()"
@@ -397,9 +418,9 @@
                           (:div :class "post-action-row"
                             (:button :class "post-action-btn" :title "React" :type "button" "☺")
                             (:button :class "post-action-btn"
-                                     :title "Reply in thread"
+                                     :title "Reply"
                                      :type "button"
-                                     :data-on-click (format nil "/action/strata-shell/open-thread?id=~A" post-id)
+                                     :data-on-click (format nil "/action/strata-shell/toggle-thread?id=~A" post-id)
                                      "↩")
                             (:button :class (if (member post-id bookmarked-ids :test #'eql)
                                                  "post-action-btn active"
@@ -407,7 +428,33 @@
                                      :title "Bookmark"
                                      :type "button"
                                      :data-on-click (format nil "/action/strata-shell/bookmark?post_id=~A" post-id)
-                                     "🔖")
+                                     "★")
+                            (when (string= status "open")
+                              (cond
+                                ((string= kind "question")
+                                 (:button :class "post-action-btn post-status-action"
+                                          :title "Mark as answered"
+                                          :type "button"
+                                          :data-on-click (format nil "/action/strata-shell/set-status?post_id=~A&status=resolved" post-id)
+                                          "✓ Answer"))
+                                ((string= kind "task")
+                                 (:button :class "post-action-btn post-status-action"
+                                          :title "Mark as done"
+                                          :type "button"
+                                          :data-on-click (format nil "/action/strata-shell/set-status?post_id=~A&status=done" post-id)
+                                          "✓ Done"))
+                                ((string= kind "decision")
+                                 (:button :class "post-action-btn post-status-action"
+                                          :title "Mark as decided"
+                                          :type "button"
+                                          :data-on-click (format nil "/action/strata-shell/set-status?post_id=~A&status=decided" post-id)
+                                          "✓ Decided"))
+                                ((string= kind "announcement")
+                                 (:button :class "post-action-btn post-status-action"
+                                          :title "Mark as resolved"
+                                          :type "button"
+                                          :data-on-click (format nil "/action/strata-shell/set-status?post_id=~A&status=resolved" post-id)
+                                          "✓ Resolve"))))
                             (when (eql author user-id)
                               (:button :class "post-action-btn"
                                        :title "Edit"
@@ -455,11 +502,49 @@
                               (:span (car r))
                               (:span (princ-to-string (cdr r)))))
                           (when (plusp replies)
-                            (:button :class "reply-count-btn"
+                            (:button :class (if (eql post-id (shell-expanded-thread-id self))
+                                                "reply-count-btn active"
+                                                "reply-count-btn")
                                      :type "button"
-                                     :data-on-click (format nil "/action/strata-shell/open-thread?id=~A" post-id)
+                                     :data-on-click (format nil "/action/strata-shell/toggle-thread?id=~A" post-id)
                               (:span "↩")
-                              (:span (format nil "~A repl~:@P" replies)))))))))))
+                              (:span (format nil "~A repl~:@P" replies)))))
+
+                      (when (eql post-id (shell-expanded-thread-id self))
+                        (let ((post-replies (handler-case
+                                                (strata.models.reply:list-replies-for-post post-id)
+                                              (error () nil))))
+                          (:div :class "inline-thread"
+                                :id (format nil "inline-thread-~A" post-id)
+                            (if (and post-replies (plusp (length post-replies)))
+                                (dolist (r post-replies)
+                                  (let* ((rbody   (strata.models.reply:reply-field r "body"))
+                                         (rts     (strata.models.reply:reply-field r "created_at"))
+                                         (rauthor (post-author-name (strata.models.reply:reply-field r "author_id"))))
+                                    (:div :class "inline-reply"
+                                      (:div :class "post-avatar inline-reply-avatar" (initial rauthor))
+                                      (:div :class "inline-reply-content"
+                                        (:div :class "inline-reply-meta"
+                                          (:span :class "post-author" rauthor)
+                                          (:span :class "post-time" (format-post-time rts)))
+                                        (:p :class "post-body" rbody)))))
+                                (:p :class "feed-empty" "No replies yet."))
+                            (:form :class "inline-reply-composer"
+                                   :data-on-submit "/action/strata-shell/reply"
+                              (:input :type "hidden" :name "post_id" :value (princ-to-string post-id))
+                              (:textarea :class "inline-reply-textarea"
+                                         :name "body"
+                                         :placeholder "Reply..."
+                                         :rows 2
+                                         :onkeydown "if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.closest('form').requestSubmit();}")
+                              (:div :class "inline-reply-actions"
+                                (:button :type "submit" :class "composer-send-btn"
+                                         :data-disable-during-request t
+                                  "Reply"))))))))))
+
+            (:p :class "feed-empty" "No messages yet."))
+
+          ) ; close post-feed
 
           ;; Resolved drawer
           (let ((resolved (load-resolved-posts (shell-active-channel self))))
@@ -525,6 +610,10 @@
                             (:input :class "channel-settings-input" :name "username"
                                     :placeholder "Username to add")
                             (:button :type "submit" :class "post-edit-save" "Add"))))
+                      (:div :class "channel-settings-actions"
+                        (:button :class "post-action-btn" :type "button"
+                                 :data-on-click (format nil "/action/strata-shell/create-sub-channel?id=~A" mgmt-id)
+                                 "⊕ Create sub-channel"))
                       (:div :class "channel-settings-danger"
                         (:button :class "post-action-btn post-action-delete" :type "button"
                                  :data-on-click (format nil "/action/strata-shell/archive-channel?id=~A" mgmt-id)
@@ -560,9 +649,9 @@
               (:input :type "file" :id "composer-file-input" :class "composer-file-input-hidden"
                       :onchange "strataHandleFileSelect(this)")
               (:div :class "composer-footer"
-                (:button :type "button" :class "composer-tool-btn" :title "Attach"
+                (:button :type "button" :class "composer-tool-btn composer-attach-btn" :title "Attach"
                          :onclick "document.getElementById('composer-file-input').click()"
-                         "📎")
+                         "Attach")
                 (:button :type "button" :class "composer-tool-btn" :title "Emoji" "☺")
                 (:span :class "composer-hint"
                   (:kbd "Enter") " to send, " (:kbd "Shift+Enter") " for newline")
@@ -644,22 +733,47 @@ Touches the channel so the sidebar ordering stays fresh."
   (setf (shell-thread-post-id self) nil)
   (fluxion.components:patch-component self))
 
+(fluxion.components:defaction shell-component :set-status (self params)
+  "Set the status of a post. Expects post_id and status params."
+  (let* ((id-str  (cdr (assoc "post_id" params :test #'string=)))
+         (status  (cdr (assoc "status"  params :test #'string=)))
+         (post-id (when id-str (ignore-errors (parse-integer id-str)))))
+    (when (and post-id status)
+      (handler-case
+          (strata.models.post:set-post-status post-id status)
+        (error (e)
+          (format t "~&[strata] set-status error: ~A~%" e))))
+  (fluxion.components:patch-component self)))
+
+(fluxion.components:defaction shell-component :toggle-thread (self params)
+  "Toggle inline replies open/closed for the post identified by id."
+  (let* ((id-str (cdr (assoc "id" params :test #'string=)))
+         (post-id (when id-str (ignore-errors (parse-integer id-str)))))
+    (if (eql post-id (shell-expanded-thread-id self))
+        (setf (shell-expanded-thread-id self) nil)
+        (setf (shell-expanded-thread-id self) post-id))
+    (fluxion.components:patch-component self)))
+
 (fluxion.components:defaction shell-component :reply (self params)
   "Create a reply to the open thread post."
-  (let* ((post-id-str (cdr (assoc "post_id"   params :test #'string=)))
-         (body        (cdr (assoc "body"       params :test #'string=)))
+  (let* ((post-id-str (cdr (assoc "post_id" params :test #'string=)))
+         (body        (cdr (assoc "body"    params :test #'string=)))
          (session     (fluxion.components:component-session self))
          (author-id   (if session (session-author-id session) 0))
          (post-id     (when post-id-str (ignore-errors (parse-integer post-id-str)))))
     (when (and post-id body (plusp (length (string-trim '(#\Space #\Tab #\Newline) body))))
       (handler-case
-          (strata.models.reply:create-reply
-           :post-id   post-id
-           :author-id author-id
-           :body      (string-trim '(#\Space #\Tab #\Newline) body))
+          (progn
+            (strata.models.reply:create-reply
+             :post-id   post-id
+             :author-id author-id
+             :body      (string-trim '(#\Space #\Tab #\Newline) body))
+            (setf (shell-expanded-thread-id self) post-id))
         (error (e)
           (format t "~&[strata] reply action error: ~A~%" e))))
-    (fluxion.components:patch-component self)))
+    (append (fluxion.components:patch-component self)
+            (list (events:make-script-event
+                   "var ta=document.querySelector('.inline-reply-textarea');if(ta){ta.value='';}")))))
 
 (fluxion.components:defaction shell-component :bookmark (self params)
   "Toggle a bookmark on the post identified by the post_id param.
@@ -734,7 +848,17 @@ Adds the bookmark if absent, removes it if already present."
   "Hide the new-channel creation form without creating anything."
   (when params nil)
   (setf (shell-creating-channel-p self) nil)
+  (setf (shell-creating-channel-under-id self) nil)
   (fluxion.components:patch-component self))
+
+(fluxion.components:defaction shell-component :create-sub-channel (self params)
+  "Open the new-channel modal pre-filled to create a channel under the current channel."
+  (let* ((id-str (cdr (assoc "id" params :test #'string=)))
+         (parent-id (when id-str (ignore-errors (parse-integer id-str)))))
+    (when parent-id
+      (setf (shell-creating-channel-under-id self) parent-id))
+    (setf (shell-creating-channel-p self) t)
+    (fluxion.components:patch-component self)))
 
 (fluxion.components:defaction shell-component :create-channel (self params)
   "Create a new channel from the modal and switch to it."
@@ -751,6 +875,8 @@ Adds the bookmark if absent, removes it if already present."
                               if (alphanumericp c) do (write-char (char-downcase c) out)
                               else if (char= c #\Space) do (write-char #\- out)))))))
          (kind (or (cdr (assoc "kind" params :test #'string=)) "open"))
+         (parent-id-str (cdr (assoc "parent_channel_id" params :test #'string=)))
+         (parent-id (when parent-id-str (ignore-errors (parse-integer parent-id-str))))
          (ws   (handler-case
                    (strata.models.workspace:find-workspace-by-slug "default")
                  (error () nil)))
@@ -762,7 +888,8 @@ Adds the bookmark if absent, removes it if already present."
                          :workspace-id ws-id
                          :slug  slug
                          :name  name
-                         :kind  kind))
+                         :kind  kind
+                         :parent-channel-id parent-id))
                  (ch-id (fxdm:model-id ch)))
             (when user-id
               (handler-case
@@ -773,6 +900,7 @@ Adds the bookmark if absent, removes it if already present."
         (error (e)
           (format t "~&[strata] create-channel error: ~A~%" e)))))
   (setf (shell-creating-channel-p self) nil)
+  (setf (shell-creating-channel-under-id self) nil)
   (fluxion.components:patch-component self))
 
 (fluxion.components:defaction shell-component :manage-channel (self params)

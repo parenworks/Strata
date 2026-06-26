@@ -1,3 +1,16 @@
+/* Strata composer helpers */
+
+window.strataSetKind = function (btn, kind) {
+  var kindField = document.getElementById('composer-kind');
+  if (kindField) kindField.value = kind;
+  var bar = btn.closest('.composer-kind-bar');
+  if (bar) {
+    bar.querySelectorAll('.kind-btn').forEach(function (b) {
+      b.classList.toggle('active', b === btn);
+    });
+  }
+};
+
 /* Strata attachment upload helper */
 (function () {
 
@@ -12,7 +25,9 @@
     var fd = new FormData();
     fd.append('file', file);
 
-    fetch('/upload', { method: 'POST', body: fd, credentials: 'same-origin' })
+    var csrf = (typeof fluxionGetCsrfToken === 'function') ? fluxionGetCsrfToken() : '';
+    var headers = csrf ? { 'X-CSRF-Token': csrf } : {};
+    fetch('/upload', { method: 'POST', body: fd, credentials: 'same-origin', headers: headers })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) {

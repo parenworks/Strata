@@ -133,16 +133,34 @@
 - [X] Mobile toolbar with hamburger + overlay sidebar dismiss
 - [X] PWA meta tags: =theme-color=, =apple-mobile-web-app-*=, manifest link
 
-** Admin
-- [X] Admin panel at =/admin= with admin permission guard
-- [X] Users tab: list all users, invite (create), disable/enable, grant/revoke admin, reset password
-- [X] Channels tab: list all channels per workspace, archive/unarchive
-- [X] Workspace tab: rename workspace display name
-- [X] Storage tab: attachment list with sizes, total disk used, delete any attachment
-- [X] Audit log tab: chronological log of all admin actions (new =audit_log= table)
-- [X] =strata.models.audit-log= model with =record-event=, =list-recent-events=
-- [X] Disabled user check wired into login action (disabled users cannot log in)
-- [X] =static/css/admin.css= panel stylesheet
+* Phase 3.5 - Verified gaps against better-slack-plan.org
+
+** UI / Core
+- [ ] Poll post type and vote UI
+- [ ] Note / wiki post type, editable by channel members
+- [ ] Task assignee and due date fields on task posts
+- [ ] Blocked status and reopening of resolved posts
+- [ ] Inline replies now implemented; old side-panel thread component can be removed
+- [ ] Sub-channel creation UI (data model already has parent_channel_id; sidebar renders them indented)
+
+** Notifications / Digest
+- [ ] Daily email digest of open items + mentions
+- [ ] Web push fanout wired to all event types (mentions, watched channels, task assignments)
+- [ ] "Watch / unwatch channel" toggle
+
+** Integrations
+- [ ] Webhook intake: POST JSON -> typed post (CI result, monitoring alert, etc.)
+- [ ] OAuth2 login (GitHub, Google) via fluxion/auth extension
+- [ ] PDF export of a channel (ReportLab pattern)
+
+** Visualisations
+- [ ] Thread relationship graph (clim-clog embedded canvas)
+- [ ] Presence heatmap (clim-clog, user_activity_pings table)
+
+** Agent / API polish
+- [ ] Agent badge on posts created by API keys / webhooks
+- [ ] API key scopes (read, post, resolve, admin)
+- [ ] Per-key rate limiting via fluxion/rate
 
 * Phase 4 - Federation (Future)
 
