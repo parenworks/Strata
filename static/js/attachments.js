@@ -25,7 +25,9 @@ window.strataSetKind = function (btn, kind) {
     var fd = new FormData();
     fd.append('file', file);
 
-    var csrf = (typeof fluxionGetCsrfToken === 'function') ? fluxionGetCsrfToken() : '';
+    var meta = document.querySelector('meta[name=fluxion-csrf]');
+    var csrf = meta ? meta.getAttribute('content') : '';
+    if (!csrf && typeof fluxionGetCsrfToken === 'function') csrf = fluxionGetCsrfToken();
     var headers = csrf ? { 'X-CSRF-Token': csrf } : {};
     fetch('/upload', { method: 'POST', body: fd, credentials: 'same-origin', headers: headers })
       .then(function (r) { return r.json(); })

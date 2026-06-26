@@ -995,10 +995,10 @@ Adds the bookmark if absent, removes it if already present."
      <meta name=\"apple-mobile-web-app-title\" content=\"Strata\">~
      <link rel=\"manifest\" href=\"/static/manifest.json\">~
      <link rel=\"apple-touch-icon\" href=\"/static/icons/icon-192.png\">~
-     <script src=\"/static/js/theme.js\"></script>~
-     <script src=\"/static/js/attachments.js\"></script>~
-     <script src=\"/static/js/pwa.js\"></script>~
-     <link rel=\"stylesheet\" href=\"/static/css/strata.css\">~
+     <script src=\"/static/js/theme.js?v=2\"></script>~
+     <script src=\"/static/js/attachments.js?v=2\"></script>~
+     <script src=\"/static/js/pwa.js?v=2\"></script>~
+     <link rel=\"stylesheet\" href=\"/static/css/strata.css?v=2\">~
      <script>~
        function strataSetKind(btn,k){~
          btn.closest('.composer-kind-bar').querySelectorAll('.kind-btn').forEach(function(b){b.classList.remove('active')});~
