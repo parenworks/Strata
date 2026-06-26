@@ -310,8 +310,13 @@ Guard logic:
                    (db-user "strata")
                    (db-password "localtest123")
                    (db-host "localhost")
-                   (db-port 5432))
-  "Start Strata: connect to PostgreSQL, run migrations, start the Woo HTTP server."
+                   (db-port 5432)
+                   (bind-host "0.0.0.0")
+                   (debug nil))
+  "Start Strata: connect to PostgreSQL, run migrations, start the Woo HTTP server.
+BIND-HOST is the network interface to listen on (default 0.0.0.0, all interfaces).
+DEBUG enables the Clack debugger; leave NIL in production so unhandled errors
+return a 500 response instead of crashing the process."
   (format t "~&[strata] Connecting to database ~A@~A:~D/~A ...~%"
           db-user db-host db-port db-name)
   (strata.app:connect-db :database db-name
@@ -325,8 +330,11 @@ Guard logic:
   (strata.jobs.notifications:start-notification-hooks)
   (strata.jobs.search:start-search-hooks)
   (strata.jobs.search:backfill-search-index)
-  (fluxion.server:start strata.app:*app* #'page-handler :address "0.0.0.0")
-  (format t "~&[strata] Server started on http://0.0.0.0:~D  (LAN accessible)~%" port)
+  (fluxion.server:start strata.app:*app* #'page-handler
+                        :address bind-host
+                        :debug debug)
+  (format t "~&[strata] Server started on http://~A:~D  (LAN accessible)~%"
+          bind-host port)
   strata.app:*app*)
 
 (defun run (&rest args &key (port *port*) &allow-other-keys)
@@ -350,31 +358,38 @@ Recognised flags (all optional, defaults from *port* and strata.app:connect-db):
   --db-user USER        PostgreSQL user (default strata)
   --db-password PASS    PostgreSQL password
   --db-host HOST        PostgreSQL host (default localhost)
-  --db-port PORT        PostgreSQL port (default 5432)"
+  --db-port PORT        PostgreSQL port (default 5432)
+  --bind-host HOST      Network interface to listen on (default 0.0.0.0)
+  --debug               Enable the Clack debugger (development only)"
   (let ((args #+sbcl (cdr sb-ext:*posix-argv*) #-sbcl nil)
         (port *port*)
         (db-name "strata_dev")
         (db-user "strata")
         (db-password "localtest123")
         (db-host "localhost")
-        (db-port 5432))
+        (db-port 5432)
+        (bind-host "0.0.0.0")
+        (debug nil))
     (loop while args do
-      (let ((flag (pop args))
-            (val  (pop args)))
+      (let ((flag (pop args)))
         (cond
-          ((string= flag "--port")        (setf port     (parse-integer val)))
-          ((string= flag "--db-name")     (setf db-name  val))
-          ((string= flag "--db-user")     (setf db-user  val))
-          ((string= flag "--db-password") (setf db-password val))
-          ((string= flag "--db-host")     (setf db-host  val))
-          ((string= flag "--db-port")     (setf db-port  (parse-integer val)))
+          ((string= flag "--port")        (setf port     (parse-integer (pop args))))
+          ((string= flag "--db-name")     (setf db-name  (pop args)))
+          ((string= flag "--db-user")     (setf db-user  (pop args)))
+          ((string= flag "--db-password") (setf db-password (pop args)))
+          ((string= flag "--db-host")     (setf db-host  (pop args)))
+          ((string= flag "--db-port")     (setf db-port  (parse-integer (pop args))))
+          ((string= flag "--bind-host")   (setf bind-host (pop args)))
+          ((string= flag "--debug")       (setf debug t))
           (t (format t "~&[strata] Unknown flag: ~A~%" flag)))))
     (run :port port
          :db-name db-name
          :db-user db-user
          :db-password db-password
          :db-host db-host
-         :db-port db-port)))
+         :db-port db-port
+         :bind-host bind-host
+         :debug debug)))
 
 (defun stop ()
   "Stop the Strata server and disconnect from the database."

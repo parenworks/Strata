@@ -9,6 +9,7 @@
 #   --db-user    USER       (default: strata)
 #   --db-pass    PASS       (default: prompted)
 #   --db-host    HOST       (default: localhost)
+#   --db-port    PORT       (default: 5432)
 #   --bind-host  HOST       (default: 0.0.0.0)
 #
 # What this does:
@@ -25,6 +26,7 @@ DB_NAME=strata
 DB_USER=strata
 DB_PASS=""
 DB_HOST=localhost
+DB_PORT=5432
 BIND_HOST=0.0.0.0
 SERVICE_USER="$(whoami)"
 
@@ -36,6 +38,7 @@ while [[ $# -gt 0 ]]; do
     --db-user)   DB_USER="$2";   shift 2 ;;
     --db-pass)   DB_PASS="$2";   shift 2 ;;
     --db-host)   DB_HOST="$2";   shift 2 ;;
+    --db-port)   DB_PORT="$2";   shift 2 ;;
     --bind-host) BIND_HOST="$2"; shift 2 ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
@@ -136,34 +139,20 @@ mkdir -p "$STRATA_DIR/uploads"
 # 5. Write systemd unit
 # ------------------------------------------------------------------
 UNIT_FILE="/etc/systemd/system/strata.service"
-echo "==> Writing systemd unit to $UNIT_FILE ..."
+TEMPLATE_FILE="$STRATA_DIR/strata.service"
+echo "==> Rendering systemd unit from $TEMPLATE_FILE to $UNIT_FILE ..."
 
-sudo tee "$UNIT_FILE" > /dev/null <<EOF
-[Unit]
-Description=Strata chat server
-After=network.target postgresql.service
-Requires=postgresql.service
-
-[Service]
-Type=simple
-User=$SERVICE_USER
-WorkingDirectory=$STRATA_DIR
-ExecStart=$STRATA_DIR/bin/strata \\
-  --port $PORT \\
-  --bind-host $BIND_HOST \\
-  --db-name $DB_NAME \\
-  --db-user $DB_USER \\
-  --db-password $DB_PASS \\
-  --db-host $DB_HOST
-Restart=on-failure
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=strata
-
-[Install]
-WantedBy=multi-user.target
-EOF
+sed \
+  -e "s|__SERVICE_USER__|$SERVICE_USER|g" \
+  -e "s|__STRATA_DIR__|$STRATA_DIR|g" \
+  -e "s|__PORT__|$PORT|g" \
+  -e "s|__BIND_HOST__|$BIND_HOST|g" \
+  -e "s|__DB_NAME__|$DB_NAME|g" \
+  -e "s|__DB_USER__|$DB_USER|g" \
+  -e "s|__DB_PASSWORD__|$DB_PASS|g" \
+  -e "s|__DB_HOST__|$DB_HOST|g" \
+  -e "s|__DB_PORT__|$DB_PORT|g" \
+  "$TEMPLATE_FILE" | sudo tee "$UNIT_FILE" > /dev/null
 
 # ------------------------------------------------------------------
 # 6. Enable and start

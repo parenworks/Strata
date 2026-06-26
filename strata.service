@@ -1,22 +1,29 @@
+# Strata systemd unit template.
+#
+# This file is NOT installed directly. deploy/setup.sh substitutes the
+# __PLACEHOLDER__ values and writes the result to
+# /etc/systemd/system/strata.service. Keep this template as the single
+# source of truth for the unit; edit it here, then re-run setup.sh.
+
 [Unit]
 Description=Strata structured team workspace
 After=network.target postgresql.service
-Wants=postgresql.service
+Requires=postgresql.service
 
 [Service]
 Type=simple
-User=strata
-Group=strata
-WorkingDirectory=/opt/strata
-ExecStart=/usr/local/bin/strata \
-    --port 4242 \
-    --db-name strata_dev \
-    --db-user strata \
-    --db-password localtest123 \
-    --db-host localhost \
-    --db-port 5432
+User=__SERVICE_USER__
+WorkingDirectory=__STRATA_DIR__
+ExecStart=__STRATA_DIR__/bin/strata \
+    --port __PORT__ \
+    --bind-host __BIND_HOST__ \
+    --db-name __DB_NAME__ \
+    --db-user __DB_USER__ \
+    --db-password __DB_PASSWORD__ \
+    --db-host __DB_HOST__ \
+    --db-port __DB_PORT__
 Restart=on-failure
-RestartSec=5s
+RestartSec=5
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=strata
