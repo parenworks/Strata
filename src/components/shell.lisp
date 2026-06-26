@@ -126,25 +126,28 @@
     (error () nil)))
 
 (defun render-attachment-list (attachments)
-  "Emit HTML for a list of attachment data-models."
+  "Emit HTML for a list of attachment data-models.
+Wrapped in SPINNERET:WITH-HTML so the tag forms emit into the caller's
+current *HTML* stream rather than being read as undefined functions."
   (when attachments
-    (:div :class "attachment-list"
-      (dolist (att attachments)
-        (let* ((uuid  (strata.models.attachment:attachment-field att "uuid"))
-               (fname (strata.models.attachment:attachment-field att "filename"))
-               (ctype (or (strata.models.attachment:attachment-field att "content_type")
-                          "application/octet-stream"))
-               (url   (format nil "/uploads/~A/~A" uuid fname))
-               (image-p (and (stringp ctype)
-                             (search "image/" (string-downcase ctype)))))
-          (:div :class "attachment-item"
-            (if image-p
-                (:a :href url :target "_blank" :class "attachment-image-link"
-                  (:img :src url :alt fname :class "attachment-thumbnail"
-                        :loading "lazy"))
-                (:a :href url :target "_blank" :class "attachment-file-link"
-                  (:span :class "attachment-icon" "📎")
-                  (:span :class "attachment-filename" fname)))))))))
+    (spinneret:with-html
+      (:div :class "attachment-list"
+        (dolist (att attachments)
+          (let* ((uuid  (strata.models.attachment:attachment-field att "uuid"))
+                 (fname (strata.models.attachment:attachment-field att "filename"))
+                 (ctype (or (strata.models.attachment:attachment-field att "content_type")
+                            "application/octet-stream"))
+                 (url   (format nil "/uploads/~A/~A" uuid fname))
+                 (image-p (and (stringp ctype)
+                               (search "image/" (string-downcase ctype)))))
+            (:div :class "attachment-item"
+              (if image-p
+                  (:a :href url :target "_blank" :class "attachment-image-link"
+                    (:img :src url :alt fname :class "attachment-thumbnail"
+                          :loading "lazy"))
+                  (:a :href url :target "_blank" :class "attachment-file-link"
+                    (:span :class "attachment-icon" "📎")
+                    (:span :class "attachment-filename" fname))))))))))
 
 (defun load-bookmarked-ids (user-id)
   "Return a list of post-id integers bookmarked by USER-ID."
