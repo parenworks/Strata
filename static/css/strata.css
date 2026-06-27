@@ -923,17 +923,142 @@ kbd {
 }
 .thread-pane-close:hover { background: var(--bg-hover); color: var(--text-primary); }
 
+/* Close button in the settings/thread pane header */
+.thread-close-btn {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+.thread-close-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* Channel settings form */
+.channel-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 16px;
+}
+
+.channel-settings-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.channel-settings-input {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.channel-settings-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.channel-settings-input::placeholder { color: var(--text-muted); }
+
+.channel-settings-section {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.channel-settings-members {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.channel-member-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--bg-surface2);
+  border-radius: var(--radius-md);
+}
+
+.channel-member-name {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.channel-member-remove {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.channel-member-remove:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.channel-add-member-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.channel-add-member-form .channel-settings-input { margin-bottom: 0; }
+.channel-add-member-form .post-edit-save { align-self: auto; }
+
+/* Save / Add buttons inside the settings panel */
+.post-edit-save {
+  padding: 9px 18px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  align-self: flex-start;
+  transition: background var(--transition), transform var(--transition);
+}
+.post-edit-save:hover  { background: var(--accent-hover); }
+.post-edit-save:active { transform: scale(0.98); }
+
 .channel-settings-actions {
   display: flex;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-top: 1px solid var(--border);
 }
 
 .channel-settings-danger {
   display: flex;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-top: 1px solid var(--border);
 }
 
