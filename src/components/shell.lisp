@@ -226,30 +226,40 @@ current *HTML* stream rather than being read as undefined functions."
             :class "strata-shell"
 
         (when (shell-creating-channel-p self)
-          (:div :class "modal-overlay"
-            (:div :class "modal-dialog"
-              (:div :class "modal-header"
-                (:h2 :class "modal-title" "New Channel")
-                (:button :class "modal-close" :type "button"
-                         :data-on-click "/action/strata-shell/hide-new-channel"
-                         "✕"))
-              (:form :class "modal-form"
-                     :data-on-submit "/action/strata-shell/create-channel"
-                (:div :class "modal-field"
-                  (:label :for "new-ch-name" "Channel name")
-                  (:input :class "modal-input" :id "new-ch-name" :name "name"
-                          :placeholder "e.g. general" :required t :autofocus t))
-                (:div :class "modal-field"
-                  (:label :for "new-ch-slug" "Slug")
-                  (:input :class "modal-input" :id "new-ch-slug" :name "slug"
-                          :placeholder "e.g. general (no spaces)")
-                  (:p :class "modal-hint" "Lowercase letters, numbers, and hyphens only."))
-                (:div :class "modal-field"
-                  (:label :for "new-ch-kind" "Type")
-                  (:select :class "modal-select" :id "new-ch-kind" :name "kind"
-                    (:option :value "open" "Public - anyone can join")
-                    (:option :value "private" "Private - invite only")))
-                (let ((under-id (shell-creating-channel-under-id self)))
+          (let* ((under-id    (shell-creating-channel-under-id self))
+                 (parent-ch   (when under-id
+                                (ignore-errors
+                                  (strata.models.channel:find-channel-by-id under-id))))
+                 (parent-name (when parent-ch
+                                (strata.models.channel:channel-field parent-ch "name")))
+                 (sub-p       (and under-id t)))
+            (:div :class "modal-overlay"
+              (:div :class "modal-dialog"
+                (:div :class "modal-header"
+                  (:h2 :class "modal-title" (if sub-p "New Sub-channel" "New Channel"))
+                  (:button :class "modal-close" :type "button"
+                           :data-on-click "/action/strata-shell/hide-new-channel"
+                           "✕"))
+                (:form :class "modal-form"
+                       :data-on-submit "/action/strata-shell/create-channel"
+                  (when sub-p
+                    (:p :class "modal-hint"
+                        (:strong "Parent channel: ")
+                        (or parent-name "(unknown)")))
+                  (:div :class "modal-field"
+                    (:label :for "new-ch-name" "Channel name")
+                    (:input :class "modal-input" :id "new-ch-name" :name "name"
+                            :placeholder "e.g. general" :required t :autofocus t))
+                  (:div :class "modal-field"
+                    (:label :for "new-ch-slug" "Slug")
+                    (:input :class "modal-input" :id "new-ch-slug" :name "slug"
+                            :placeholder "e.g. general (no spaces)")
+                    (:p :class "modal-hint" "Lowercase letters, numbers, and hyphens only."))
+                  (:div :class "modal-field"
+                    (:label :for "new-ch-kind" "Type")
+                    (:select :class "modal-select" :id "new-ch-kind" :name "kind"
+                      (:option :value "open" "Public - anyone can join")
+                      (:option :value "private" "Private - invite only")))
                   (if under-id
                       (:input :type "hidden" :name "parent_channel_id" :value (princ-to-string under-id))
                       (:div :class "modal-field"
@@ -259,13 +269,13 @@ current *HTML* stream rather than being read as undefined functions."
                           (dolist (ch channels)
                             (let ((ch-id (fxdm:model-id ch))
                                   (ch-name (strata.models.channel:channel-field ch "name")))
-                              (:option :value (princ-to-string ch-id) ch-name)))))))
-                (:div :class "modal-actions"
-                  (:button :type "button" :class "modal-btn-ghost"
-                           :data-on-click "/action/strata-shell/hide-new-channel"
-                           "Cancel")
-                  (:button :type "submit" :class "modal-btn-primary"
-                           "Create channel"))))))
+                              (:option :value (princ-to-string ch-id) ch-name))))))
+                  (:div :class "modal-actions"
+                    (:button :type "button" :class "modal-btn-ghost"
+                             :data-on-click "/action/strata-shell/hide-new-channel"
+                             "Cancel")
+                    (:button :type "submit" :class "modal-btn-primary"
+                             (if sub-p "Create sub-channel" "Create channel")))))))))
 
 
         ;; --- Workspace rail ---
@@ -855,11 +865,13 @@ Adds the bookmark if absent, removes it if already present."
   (fluxion.components:patch-component self))
 
 (fluxion.components:defaction shell-component :create-sub-channel (self params)
-  "Open the new-channel modal pre-filled to create a channel under the current channel."
+  "Open the new-channel modal pre-filled to create a channel under the current channel.
+Closes the channel settings side panel so the centered modal is shown cleanly."
   (let* ((id-str (cdr (assoc "id" params :test #'string=)))
          (parent-id (when id-str (ignore-errors (parse-integer id-str)))))
     (when parent-id
       (setf (shell-creating-channel-under-id self) parent-id))
+    (setf (shell-managing-channel-id self) nil)
     (setf (shell-creating-channel-p self) t)
     (fluxion.components:patch-component self)))
 
