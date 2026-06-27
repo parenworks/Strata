@@ -275,7 +275,7 @@ current *HTML* stream rather than being read as undefined functions."
                              :data-on-click "/action/strata-shell/hide-new-channel"
                              "Cancel")
                     (:button :type "submit" :class "modal-btn-primary"
-                             (if sub-p "Create sub-channel" "Create channel")))))))))
+                             (if sub-p "Create sub-channel" "Create channel"))))))))
 
 
         ;; --- Workspace rail ---
